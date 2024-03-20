@@ -1,0 +1,896 @@
+<html>
+
+<head>
+    <style>
+        div.scroll {
+
+            width: 600px;
+            height: 450px;
+            overflow-x: hidden;
+            overflow-y: auto;
+            text-align: center;
+            padding: 20px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid black;
+        }
+
+        th,
+        td {
+            padding: 5px;
+            text-align: center;
+        }
+
+        .flex-container {
+            display: flex;
+        }
+
+        .action-container {
+            display: flex;
+            flex-flow: row wrap;
+            justify-content: space-around;
+            row-gap: 20px
+        }
+
+        .flex-container-settings {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            min-height: 300px
+        }
+
+        .column {
+            flex-grow: 1;
+        }
+
+        .wide-column {
+            flex: 2;
+        }
+
+        .vertical-text {
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            white-space: nowrap;
+        }
+
+        .players-container {
+            display: flex;
+            column-gap: 20px;
+            row-gap: 20px;
+            flex-flow: row wrap;
+            justify-content: space-around
+        }
+
+        .player-item {
+            flex-basis: 20%;
+            font-size: 24px;
+            background-color: burlywood
+        }
+
+        .positive-action-item {
+            flex-basis: 30%;
+            font-size: 18px;
+            background-color: #99ff99;
+            font-weight: bold;
+        }
+
+        .negative-action-item {
+            flex-basis: 30%;
+            font-size: 18px;
+            background-color: #ffad99;
+            font-weight: bold;
+        }
+
+        .action-item {
+            flex-basis: 30%;
+            font-size: 24px;
+            background-color: forestgreen
+        }
+
+        .keyboard-container {
+            display: flex;
+            flex-direction: column;
+            flex-wrap: wrap;
+            row-gap: 10px;
+        }
+    </style>
+    <script type="text/javascript">
+        var eqaName = ""
+        var eqbName = ""
+        var isMouseDown = false;
+        var el;
+        var container;
+
+        var activePlayer = "";
+
+        class Action {
+            constructor(pName) {
+                this.start = Date.now()
+                this.player = pName
+                this.infos = []
+                this.origin = ""
+                this.nbpo = 0
+            }
+
+            close(action) {
+                this.end = Date.now()
+                this.result = action
+                this.duration = (this.end - this.start) / 1000
+            }
+
+            addInfo(additionalInfo) {
+                this.infos.push(additionalInfo)
+            }
+
+            getOverview() {
+                const sep = ":"
+                const nbPo = countOcc(this.infos, "passe oubliee")
+                var info = ""
+                if (this.infos[this.infos.length - 1]) {
+                    info = this.infos[this.infos.length - 1]
+                }
+                return this.player + sep + this.result + sep + info + sep + this.duration + sep + nbPo + sep + this.origin
+            }
+
+            setOrigin(origin) {
+                this.origin = origin;
+            }
+        }
+
+        function countOcc(arr, s) {
+            var i = 0
+            arr.forEach((v) => {
+                if (v === s) {
+                    i++
+                }
+            })
+            return i
+        }
+
+        const actionsList = []
+
+        function setActivePlayer(pName) {
+            actionsPos.style.visibility = "visible"
+            actionsNeg.style.visibility = "visible"
+            passeOubliee.style.visibility = "visible"
+            if (activePlayer !== "") {
+                closeAction("passe")
+            }
+            activePlayer = pName;
+            gameAdvanced.push(new advancedAction("p",pName,video.currentTime))
+        }
+
+        var journal = ""
+        var nbpo = 0
+        var breakPass = false
+        function closeAction(act) {
+            newJournalEntry = equipe + ":" + opponent.value + ":" + activePlayer + ":" + act + "<br>"
+            journal = journal + newJournalEntry
+            gameAdvanced.push(new advancedAction("a",act,video.currentTime))
+            if (act === "passe_oubliee") {
+                nbpo++
+                return
+            }
+            if (act === "passe_en_break") {
+                breakPass = true
+                return
+            }
+
+            data = {
+                equipe: equipe,
+                adv: opponent.value,
+                player: activePlayer,
+                action: act,
+                nbpo: nbpo,
+                break: breakPass
+            }
+            nbpo = 0;
+            sendData(data)
+            game.push(data)
+            breakPass = false
+
+            if (act !== "passe" && act !== "passe_oubliee" && act !== "recoit_pull_ou_turnover") {
+                actionsPos.style.visibility = "hidden"
+                actionsNeg.style.visibility = "hidden"
+                passeOubliee.style.visibility = "hidden"
+                activePlayer = ""
+            }
+        }
+
+        const url = "./records/save.php"
+
+        function sendData(data) {
+            console.log(data)
+            // Make the POST request
+            fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json", // Set appropriate content type
+                },
+                body: JSON.stringify(data), // Convert data to JSON format
+            })
+                .then((response) => {
+                    if (response.ok) {
+                        console.log("Data sent successfully!");
+                        // Handle success (e.g., show a success message)
+                    } else {
+                        console.error("Error sending data:", response.statusText);
+                        // Handle error (e.g., show an error message)
+                    }
+                })
+                .catch((error) => {
+                    console.error("Network error:", error);
+                    console.log("execution en local")
+                    sendData = new Function("sendData", '')
+                });
+        }
+
+        var game = []
+        function download() {
+            file_content = "Qui;fait quoi;passes oubliees;break\n"
+            game.forEach((act) => {
+                file_content += act.player + ";" + act.action + ";" + act.nbpo + ";" + act.break + "\n"
+            })
+            file_content+="************ ADVANCED ************\n"
+            gameAdvanced.forEach((act) => {
+                file_content+=act.type+";"+act.data+";"+act.vidTs+"\n"
+            })
+            var bb = new Blob([file_content], { type: 'text/plain' });
+            var a = document.createElement('a');
+            a.download = "U17A_" + opponent.value + ".csv"
+            a.href = window.URL.createObjectURL(bb);
+            a.click();
+        }
+
+
+
+
+        const mouseIndex = 100;
+
+        const touchEventCreate = "create";
+        const touchEventAdd = "add";
+        const touchEventEnd = "end";
+
+        function Touch(id, x, y, timeStamp, event) {
+            this.id = id;
+            this.x = x;
+            this.y = y;
+            this.timeStamp = timeStamp;
+            this.event = event;
+        }
+
+        const noMoveSquarred = 25;
+        const shortMoveSquarred = 100 * 100;
+
+        function angle(cx, cy, ex, ey) {
+            var dy = ey - cy;
+            var dx = ex - cx;
+            var theta = Math.atan2(dy, dx); // range (-PI, PI]
+            theta *= 180 / Math.PI; // rads to degs, range (-180, 180]
+            if (theta < 0) theta = 360 + theta; // range [0, 360)
+            return theta;
+        }
+
+        function isBetween(x, bottom, top) {
+            return x >= bottom && x < top
+        }
+        const directionUp = "UP";
+        const directionDown = "DOWN";
+        const directionLeft = "LEFT";
+        const directionRight = "RIGHT";
+
+        const directionUpRight = "UPRIGHT";
+        const directionUpLeft = "UPLEFT";
+        const directionDownRight = "DOWNRIGHT";
+        const directionDownLeft = "DOWNLEFT";
+
+        const durationClick = 150;
+
+        function direction(angle) {
+            if (isBetween(angle, 292, 337)) {
+                return directionUpRight;
+            }
+
+            if (isBetween(angle, 247, 292)) {
+                return directionUp;
+            }
+
+            if (isBetween(angle, 202, 247)) {
+                return directionUpLeft
+            }
+
+            if (isBetween(angle, 157, 202)) {
+                return directionLeft;
+            }
+
+            if (isBetween(angle, 112, 157)) {
+                return directionDownLeft;
+
+            }
+
+            if (isBetween(angle, 67, 112)) {
+                return directionDown;
+            }
+
+            if (isBetween(angle, 22, 67)) {
+                return directionDownRight;
+            }
+
+            return directionRight
+        }
+
+
+
+        function analyzeTouches(touches, callback) {
+            var first = touches[0];
+            var last = touches.at(-1);
+            var deltaX = first.x - last.x;
+            var deltaY = first.y - last.y;
+            var distanceSquarred = deltaX * deltaX + deltaY * deltaY;
+
+            var touchLength = "CLICK";
+            if (distanceSquarred > noMoveSquarred) {
+                touchLength = "short"
+            };
+            if (distanceSquarred > shortMoveSquarred) {
+                touchLength = "long"
+            };
+
+            if (touchLength === "CLICK") {
+                if (last.timeStamp - first.timeStamp > durationClick) {
+                    touchLength = "long" + touchLength
+                } else {
+                    touchLength = "short" + touchLength
+                }
+            } else {
+                touchLength += direction(angle(first.x, first.y, last.x, last.y));
+            }
+            var inputElement = document.getElementById(touchLength);
+            const finalName = inputElement.value;
+            callback(finalName);
+        }
+
+
+        let touchRecorder = {
+            touchRecord: {},
+            addTouchEvent: function (evt) {
+                switch (evt.event) {
+                    case touchEventCreate:
+                        this.touchRecord[evt.id] = [evt];
+                        break;
+                    case touchEventAdd:
+                        this.touchRecord[evt.id].push(evt);
+                        break;
+                    case touchEventEnd:
+                        this.touchRecord[evt.id].push(evt);
+                        break;
+                }
+            }
+        }
+
+        function handleIt() {
+            eqaName = document.getElementById("eqa").value
+            eqbName = document.getElementById("eqb").value
+            alert(eqaName + " vs " + eqbName);
+            document.getElementById("eq").hidden = true
+        }
+
+        class ActionButton {
+            constructor(name, key) {
+                this.name = name
+                this.key = key
+            }
+        }
+
+        const negativeActionList = []
+        negativeActionList.push(new ActionButton("passe_oubliee", "-"))
+        negativeActionList.push(new ActionButton("subit_un_time", "Insert"))
+        negativeActionList.push(new ActionButton("drop_le_disque", "Home"))
+        negativeActionList.push(new ActionButton("rate_une_passe", "PageDown"))
+        negativeActionList.push(new ActionButton("se_fait_intercepte", "PageUp"))
+        negativeActionList.push(new ActionButton("se_fait_breaker", "Backspace"))
+        negativeActionList.push(new ActionButton("cut_ouvert", "End"))
+
+        const positiveActionList = []
+        positiveActionList.push(new ActionButton("recoit_pull_ou_turnover", "w"))
+        positiveActionList.push(new ActionButton("intercepte_ou_defend_une_passe", "x"))
+        positiveActionList.push(new ActionButton("bloque_une_passe", "c"))
+        positiveActionList.push(new ActionButton("marque_un_point", "Enter"))
+        positiveActionList.push(new ActionButton("passe_en_break", "+"))
+        positiveActionList.push(new ActionButton("hammer", "a"))
+        positiveActionList.push(new ActionButton("avant", "z"))
+        positiveActionList.push(new ActionButton("knife", "e"))
+        positiveActionList.push(new ActionButton("swing", "q"))
+        positiveActionList.push(new ActionButton("skoober", "d"))
+        positiveActionList.push(new ActionButton("dump", "s"))
+        positiveActionList.push(new ActionButton("hammer_long", "A"))
+        positiveActionList.push(new ActionButton("avant_long", "Z"))
+        positiveActionList.push(new ActionButton("knife_long", "E"))
+        positiveActionList.push(new ActionButton("swing_long", "Q"))
+        positiveActionList.push(new ActionButton("skoober_long", "D"))
+        positiveActionList.push(new ActionButton("dump_long", "S"))
+        class Player {
+            constructor(numero, nom, key = "/") {
+                this.name = nom
+                this.number = numero
+                this.key = key
+            }
+
+            getFullTitle() {
+                if (this.number === "") {
+                    return this.name
+                }
+                return '[' + this.key + ']  ' + this.number + "-" + this.name
+            }
+        }
+        const u17A = []
+        u17A.push(new Player("01", "Ulysse", "7"))
+        u17A.push(new Player("08", "Cedric", "8"))
+        u17A.push(new Player("09", "Gabin", "9"))
+        u17A.push(new Player("14", "Antoine", "4"))
+        u17A.push(new Player("19", "Emilien", "5"))
+        u17A.push(new Player("22", "Indira", "6"))
+        u17A.push(new Player("23", "Elouan", "1"))
+        u17A.push(new Player("24", "Maelis", "2"))
+        u17A.push(new Player("28", "Baptiste", "3"))
+        u17A.push(new Player("33", "Elias", "0"))
+
+        const u17B = []
+        u17B.push(new Player("0", "Romane"))
+        u17B.push(new Player("0", "Jeanne"))
+        u17B.push(new Player("02", "Zao"))
+        u17B.push(new Player("13", "Vasco"))
+        u17B.push(new Player("18", "Tom"))
+        u17B.push(new Player("26", "Elie"))
+        u17B.push(new Player("66", "Joseph"))
+        u17B.push(new Player("99", "Fantine"))
+        u17B.push(new Player("98", "Cerb"))
+        u17B.push(new Player("00", "PM"))
+        u17B.push(new Player("00", "Alex"))
+        u17B.push(new Player("00", "Damien"))
+
+        const u15 = []
+        u15.push(new Player("0", "Clar"))
+        u15.push(new Player("1", "Aureline"))
+        u15.push(new Player("2", "Noah"))
+        u15.push(new Player("3", "Liam"))
+        u15.push(new Player("4", "Aubin"))
+        u15.push(new Player("5", "Yann"))
+        u15.push(new Player("6", "Augustin"))
+        u15.push(new Player("7", "Celestin"))
+        u15.push(new Player("8", "Theo"))
+        u15.push(new Player("9", "Matteo"))
+        u15.push(new Player("10", "Timothe"))
+
+
+        var equipe
+
+        function changeTeam() {
+            equipe = document.querySelector('input[name="equipe"]:checked').value;
+            playersContainer.innerHTML = "";
+            if (equipe === "U17B") {
+                u17B.forEach(addPlayer)
+            }
+            if (equipe === "U17A") {
+                u17A.forEach(addPlayer)
+            }
+            if (equipe === "U15") {
+                u15.forEach(addPlayer)
+            }
+        }
+
+        var URL = window.URL || window.webkitURL
+
+        var playSelectedFile = function (event) {
+            var file = this.files[0]
+            var type = file.type
+            var videoNode = document.querySelector('video')
+            var fileURL = URL.createObjectURL(file)
+            videoNode.src = fileURL
+        }
+
+        function startup() {
+            action = negativeActionList[0]
+            passeOubliee.insertAdjacentHTML('beforeend', '<button class="negative-action-item" style="width: 100%;" id="' + action.name + '"onClick=closeAction("' + action.name + '")>[' + action.key + "]  " + action.name + '</button>')
+
+            for (let i = 1; i < negativeActionList.length; i++) {
+                addActionEnd(negativeActionList[i])
+            }
+            positiveActionList.forEach(addOriginOfAction)
+            actionsPos.style.visibility = "hidden"
+            actionsNeg.style.visibility = "hidden"
+            passeOubliee.style.visibility = "hidden"
+            u17A.forEach(addPlayer)
+
+            var inputNode = document.getElementById("fileinput")
+            inputNode.addEventListener('change', playSelectedFile, false)
+        }
+
+        document.addEventListener('DOMContentLoaded', startup);
+
+        const ongoingTouches = [];
+
+        function handleStart(evt) {
+            evt.preventDefault();
+
+            const touches = evt.changedTouches;
+            for (let i = 0; i < touches.length; i++) {
+
+                touchRecorder.addTouchEvent(new Touch(touches[i].identifier, touches[i].pageX, touches[i].pageY, Date.now(), touchEventCreate))
+            }
+        }
+
+        function handleMouseStart(evt) {
+            isMouseDown = true;
+            evt.preventDefault();
+            touchRecorder.addTouchEvent(new Touch(mouseIndex, evt.pageX, evt.pageY, Date.now(), touchEventCreate))
+        }
+
+
+        function handleMove(evt) {
+            evt.preventDefault();
+
+            const touches = evt.changedTouches;
+            for (let i = 0; i < touches.length; i++) {
+
+                touchRecorder.addTouchEvent(new Touch(touches[i].identifier, touches[i].pageX, touches[i].pageY, Date.now(), touchEventAdd))
+            }
+
+        }
+
+        function handleMouseMove(evt) {
+            if (!isMouseDown) {
+                return;
+            }
+
+            evt.preventDefault();
+            touchRecorder.addTouchEvent(new Touch(mouseIndex, evt.pageX, evt.pageY, Date.now(), touchEventAdd))
+        }
+
+        function handleEnd(evt) {
+            evt.preventDefault();
+            const touches = evt.changedTouches;
+            for (let i = 0; i < touches.length; i++) {
+                touchRecorder.addTouchEvent(new Touch(touches[i].identifier, touches[i].pageX, touches[i].pageY, Date.now(), touchEventEnd));
+                const event = new CustomEvent(touchEventEnd, {
+                    detail: touchRecorder.touchRecord[touches[i].identifier],
+                    bubbles: true,
+                    cancelable: true,
+                    composed: false,
+                });
+                el.dispatchEvent(event);
+            }
+
+        }
+
+        function handleMouseEnd(evt) {
+            if (!isMouseDown) {
+                return;
+            }
+            isMouseDown = false;
+            evt.preventDefault();
+            touchRecorder.addTouchEvent(new Touch(mouseIndex, evt.pageX, evt.pageY, Date.now(), touchEventEnd));
+
+            const event = new CustomEvent(touchEventEnd, {
+                detail: touchRecorder.touchRecord[mouseIndex],
+                bubbles: true,
+                cancelable: true,
+                composed: false,
+            });
+            el.dispatchEvent(event);
+        }
+
+
+        const lastActions = []
+
+        function log(msg) {
+            if (msg === "" || msg === " ") {
+                return
+            }
+            //record action
+            var act = actionsList.pop()
+            act.addInfo(msg)
+            actionsList.push(act)
+
+            // show last actions
+            lastActions.unshift(msg)
+            if (lastActions.length > 10) {
+                lastActions.pop()
+            }
+            container.textContent = lastActions.join("\n")
+        }
+
+        function saveTouch(touch) {
+            ongoingTouches.push(copyTouch(touch));
+        }
+
+
+
+        function addNewPlayer() {
+            addPlayer(new Player(newPlayerNumber.value, newPlayer.value))
+        }
+
+        function addPlayer(player) {
+            playersContainer.insertAdjacentHTML('beforeend', '<button class="player-item" onClick=setActivePlayer("' + player.name + '")>' + player.getFullTitle() + '</button>')
+
+        }
+
+        function addOrigin() {
+            addOriginOfAction(newOrigin.value)
+        }
+
+        function addActionEnd(action) {
+
+            actionsNeg.insertAdjacentHTML('beforeend', '<button class="negative-action-item"  id="' + action.name + '"onClick=closeAction("' + action.name + '")>[' + action.key + "]  " + action.name + '</button>')
+        }
+
+        function addOriginOfAction(ori) {
+            actionsPos.insertAdjacentHTML('beforeend', '<button class="positive-action-item" id="' + ori.name + '"onClick=closeAction("' + ori.name + '")>[' + ori.key + "]  " + ori.name + '</button>')
+        }
+
+        function showOrHide(elem) {
+            if (elem.style.display === "none") {
+                elem.style.display = "";
+            } else {
+                elem.style.display = "none";
+            }
+        }
+
+        // keyborad inputs
+        function getPlayerFromKey(key) {
+            p = ""
+            u17A.forEach((player) => {
+                if (player.key === key) {
+                    console.log(player.name)
+                    p = player.name
+                }
+            })
+            return p
+        }
+
+        function getActionFromKey(key) {
+            a = ""
+            positiveActionList.forEach((action) => {
+                if (action.key === key) {
+                    a = action.name
+                }
+            })
+            if (a === "") {
+                negativeActionList.forEach((action) => {
+                    if (action.key === key) {
+                        a = action.name
+                    }
+                })
+            }
+            return a
+        }
+
+        var gameAdvanced=[]
+        class advancedAction{
+            constructor(type,data,vidTs){
+                this.type=type
+                this.data=data
+                this.vidTs=vidTs
+            }
+        }
+
+        function handleKeyDown(event) {
+            console.log(event.key+"/"+event.keyCode)
+            if (document.activeElement === opponent) {
+                return
+            }
+            event.preventDefault();
+            //controles videos
+            if (event.keyCode == 32) {
+                playOrPause()
+                return
+            }
+
+            if(event.key=="ArrowUp"){
+                speedup()
+                return
+            }
+
+            if(event.key=="ArrowDown"){
+                slowdown()
+                return
+            }
+
+            if(event.key=="ArrowLeft"){
+                back()
+                return
+            }
+
+            if(event.key=="ArrowRight"){
+                advance()
+                return
+            }
+          
+
+            if (event.shiftKey && event.ctrlKey) {
+                game.push({
+                    equipe: "",
+                    adv: "",
+                    player: "ANNULATION",
+                    action: "supprimer cette ligne et celle au dessus ou dessous, ca depend :(",
+                    nbpo: ""
+                })
+                gameAdvanced.pop()
+
+                return
+            }
+            p = getPlayerFromKey(event.key)
+            if (p !== '') {
+                setActivePlayer(p)
+                gameAdvanced.push(new advancedAction("p",p,video.currentTime))
+                return
+            }
+            a = getActionFromKey(event.key)
+            if (a !== '') {
+                closeAction(a)
+                gameAdvanced.push(new advancedAction("a",a,video.currentTime))
+
+                return
+            }
+        }
+
+        // Add event listener for keydown
+        document.addEventListener('keydown', handleKeyDown);
+
+    </script>
+</head>
+
+<body>
+    <div id="settings">
+        <!-- <input type="radio" id="eqA" name="equipe" value="U17A" onChange="changeTeam()">
+        <label for="eqA">U17A</label>
+        <input type="radio" id="eqB" name="equipe" value="U17B" onChange="changeTeam()">
+        <label for="eqB">U17B</label>
+        <input type="radio" id="eqC" name="equipe" value="U15" onChange="changeTeam()">
+        <label for="eqC">U15</label>&nbsp;&nbsp;&nbsp;-->
+        Adversaire: <input id="opponent" type="text" name="opponent" value="Test"> &nbsp;&nbsp;&nbsp; <button
+            onclick="download()">Sauvegarder en local</button>&nbsp;&nbsp;&nbsp;Attention, si la page est rechargée, les
+        donnees sont perdues &nbsp;&nbsp;&nbsp; CTRL + SHIFT pour ajouter une info d'annulation. Attention c'est
+        experimental...
+    </div>
+    <div style="display: flex;">
+        <div id="videodiv" style="flex:0.6">
+            <input type="file" accept="video/*" id="fileinput"/>
+            <figure id="videoContainer">
+                <video id="video" controls autoplay width="100%" height="auto"></video>
+            </figure>
+            <div id="video-controls" class="controls">
+                <button id="playpause" type="button">Play/Pause</button>&nbsp;<button id="stop"
+                    type="button">Stop</button></li>
+                <span class="progress">
+                    <progress id="progress" value="0" min="0" width="50%">
+                        <span id="progress-bar"></span>
+                    </progress>
+                    <button id="minus5" type="button">-5s</button>Timer:<span id="timer">0.0</span> <button id="plus5"
+                        type="button">+5s</button>
+                </span>&nbsp;<button id="lent" type="button">lent</button>&nbsp;<span
+                    id="playspeed">1.00</span>&nbsp;<button id="rapide" type="button">rapide</button>
+            </div>
+        </div>
+
+        <script>
+            const supportsVideo = !!document.createElement("video").canPlayType;
+            if (supportsVideo) {
+                console.log("video ok!!")
+                video.controls = false;
+            }
+            const playpause = document.getElementById("playpause");
+            const stop = document.getElementById("stop");
+            const progress = document.getElementById("progress");
+            const progressBar = document.getElementById("progress-bar");
+            const videoContainer = document.getElementById("videoContainer");
+            const plus5 = document.getElementById("plus5");
+
+            const videoControls = document.getElementById("video-controls");
+
+            function speedup() {
+                video.playbackRate *= 2
+                playspeed.innerHTML = video.playbackRate.toFixed(2);
+            }
+
+            function slowdown() {
+                video.playbackRate /= 2
+                playspeed.innerHTML = video.playbackRate.toFixed(2);
+            }
+
+            function advance() {
+                video.currentTime += 5
+            }
+
+            function back() {
+                video.currentTime -= 5
+            }
+
+            function playOrPause() {
+                if (video.paused || video.ended) {
+                    video.play();
+                } else {
+                    video.pause();
+                }
+            }
+
+            function stopVideo() {
+                video.pause();
+                video.currentTime = 0;
+                progress.value = 0;
+            }
+
+            rapide.addEventListener("click", (e) => {
+                speedup()
+            })
+
+            lent.addEventListener("click", (e) => {
+                slowdown()
+            })
+
+            plus5.addEventListener("click", (e) => {
+                advance()
+            })
+
+            minus5.addEventListener("click", (e) => {
+                back()
+            })
+            playpause.addEventListener("click", (e) => {
+                playOrPause()
+            });
+
+            stop.addEventListener("click", (e) => {
+                stopVideo()
+            });
+
+            video.addEventListener("loadedmetadata", () => {
+                progress.setAttribute("max", video.duration);
+            });
+
+            video.addEventListener("timeupdate", () => {
+                progress.value = video.currentTime;
+                progressBar.style.width = `${Math.floor(
+                    (video.currentTime * 100) / video.duration,
+                )}%`;
+                timer.innerHTML = video.currentTime.toFixed(2);
+            });
+
+
+            video.addEventListener("timeupdate", () => {
+                if (!progress.getAttribute("max"))
+                    progress.setAttribute("max", video.duration);
+                progress.value = video.currentTime;
+                progressBar.style.width = `${Math.floor(
+                    (video.currentTime * 100) / video.duration,
+                )}%`;
+            });
+
+            progress.addEventListener("click", (e) => {
+                const rect = progress.getBoundingClientRect();
+                const pos = (e.pageX - rect.left) / progress.offsetWidth;
+                video.currentTime = pos * video.duration;
+            });
+        </script>
+
+        <div id="keyboard" class="keyboard-container" style="flex: 0.4">
+            <br>
+            <div class="action-container" id="actionsPos"></div>
+            <br>
+            <div class="players-container" id="playersContainer"></div>
+            <br>
+            <div class="passe-oubliee" id="passeOubliee"></div>
+            <br>
+            <div class="action-container" id=actionsNeg></div>
+        </div>
+    </div>
+</body>
+
+</html>

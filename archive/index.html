@@ -1,0 +1,34 @@
+<html>
+<script>
+    function getCookie(cname) {
+        let name = cname + "=";
+        let ca = document.cookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+            }
+            if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+            }
+        }
+        return "";
+    }
+
+    function displaySaves() {
+        save=getCookie("game").split("!")
+
+        display = document.getElementById('display')
+        display.innerHTML = save.join("<BR>")
+    }
+
+</script>
+
+<body onload="displaySaves()">
+    <div id="display">
+
+    </div>
+
+</body>
+
+</html>

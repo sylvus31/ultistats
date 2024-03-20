@@ -1,0 +1,539 @@
+<html>
+
+<head>
+    <link rel="stylesheet" href="./mystyle.css">
+    <style>
+        div.scroll {
+
+            width: 600px;
+            height: 450px;
+            overflow-x: hidden;
+            overflow-y: auto;
+            text-align: center;
+            padding: 20px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid black;
+        }
+
+        th,
+        td {
+            padding: 5px;
+            text-align: center;
+        }
+
+        .flex-container {
+            display: flex;
+        }
+
+        .column {
+            flex-grow: 1;
+        }
+
+        .wide-column {
+            flex: 2;
+        }
+
+        .vertical-text {
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            white-space: nowrap;
+        }
+
+    </style>
+    <script type="text/javascript">
+        var eqaName = ""
+        var eqbName = ""
+        var isMouseDown = false;
+        var el;
+        var container;
+
+        const mouseIndex = 100;
+
+        const touchEventCreate = "create";
+        const touchEventAdd = "add";
+        const touchEventEnd = "end";
+
+        function Touch(id, x, y, timeStamp, event) {
+            this.id = id;
+            this.x = x;
+            this.y = y;
+            this.timeStamp = timeStamp;
+            this.event = event;
+        }
+
+        const noMoveSquarred = 25;
+        const shortMoveSquarred = 80 * 80;
+
+        function angle(cx, cy, ex, ey) {
+            var dy = ey - cy;
+            var dx = ex - cx;
+            var theta = Math.atan2(dy, dx); // range (-PI, PI]
+            theta *= 180 / Math.PI; // rads to degs, range (-180, 180]
+            if (theta < 0) theta = 360 + theta; // range [0, 360)
+            return theta;
+        }
+
+        function isBetween(x, bottom, top) {
+            return x >= bottom && x < top
+        }
+        const directionUp = "UP";
+        const directionDown = "DOWN";
+        const directionLeft = "LEFT";
+        const directionRight = "RIGHT";
+
+        const directionUpRight = "UPRIGHT";
+        const directionUpLeft = "UPLEFT";
+        const directionDownRight = "DOWNRIGHT";
+        const directionDownLeft = "DOWNLEFT";
+
+        const durationClick = 150;
+
+        function direction(angle) {
+            if (isBetween(angle, 292, 337)) {
+                return directionUpRight;
+            }
+
+            if (isBetween(angle, 247, 292)) {
+                return directionUp;
+            }
+
+            if (isBetween(angle, 202, 247)) {
+                return directionUpLeft
+            }
+
+            if (isBetween(angle, 157, 202)) {
+                return directionLeft;
+            }
+
+            if (isBetween(angle, 112, 157)) {
+                return directionDownLeft;
+
+            }
+
+            if (isBetween(angle, 67, 112)) {
+                return directionDown;
+            }
+
+            if (isBetween(angle, 22, 67)) {
+                return directionDownRight;
+            }
+
+            return directionRight
+        }
+
+
+
+        function analyzeTouches(touches, callback) {
+            var first = touches[0];
+            var last = touches.at(-1);
+            var deltaX = first.x - last.x;
+            var deltaY = first.y - last.y;
+            var distanceSquarred = deltaX * deltaX + deltaY * deltaY;
+
+            var touchLength = "CLICK";
+            if (distanceSquarred > noMoveSquarred) {
+                touchLength = "short"
+            };
+            if (distanceSquarred > shortMoveSquarred) {
+                touchLength = "long"
+            };
+
+            if (touchLength === "CLICK") {
+                if (last.timeStamp - first.timeStamp > durationClick) {
+                    touchLength = "long" + touchLength
+                } else {
+                    touchLength = "short" + touchLength
+                }
+            } else {
+                touchLength += direction(angle(first.x, first.y, last.x, last.y));
+            }
+            var inputElement = document.getElementById(touchLength);
+            const finalName = inputElement.value;
+            callback(finalName);
+        }
+
+
+        let touchRecorder = {
+            touchRecord: {},
+            addTouchEvent: function(evt) {
+                switch (evt.event) {
+                    case touchEventCreate:
+                        this.touchRecord[evt.id] = [evt];
+                        break;
+                    case touchEventAdd:
+                        this.touchRecord[evt.id].push(evt);
+                        break;
+                    case touchEventEnd:
+                        this.touchRecord[evt.id].push(evt);
+                        break;
+                }
+            }
+        }
+
+        function handleIt() {
+            eqaName = document.getElementById("eqa").value
+            eqbName = document.getElementById("eqb").value
+            alert(eqaName + " vs " + eqbName);
+            document.getElementById("eq").hidden = true
+        }
+
+        function startup() {
+            el = document.getElementById('canvas');
+            container = document.getElementById('log')
+            el.addEventListener(touchEventEnd, function(evt) {
+                analyzeTouches(evt['detail'], log)
+            });
+            //finger touch
+            el.addEventListener('touchstart', handleStart);
+            el.addEventListener('touchend', handleEnd);
+            el.addEventListener('touchcancel', handleEnd);
+            el.addEventListener('touchmove', handleMove);
+
+            //mouse touch
+            el.addEventListener('mousedown', handleMouseStart);
+            el.addEventListener('mouseup', handleMouseEnd);
+            el.addEventListener('mouseout', handleMouseEnd);
+            el.addEventListener('mousemove', handleMouseMove);
+        }
+
+        document.addEventListener('DOMContentLoaded', startup);
+
+        const ongoingTouches = [];
+
+        function handleStart(evt) {
+            evt.preventDefault();
+
+            const touches = evt.changedTouches;
+            for (let i = 0; i < touches.length; i++) {
+
+                touchRecorder.addTouchEvent(new Touch(touches[i].identifier, touches[i].pageX, touches[i].pageY, Date.now(), touchEventCreate))
+            }
+        }
+
+        function handleMouseStart(evt) {
+            isMouseDown = true;
+            evt.preventDefault();
+            touchRecorder.addTouchEvent(new Touch(mouseIndex, evt.pageX, evt.pageY, Date.now(), touchEventCreate))
+        }
+
+
+        function handleMove(evt) {
+            evt.preventDefault();
+
+            const touches = evt.changedTouches;
+            for (let i = 0; i < touches.length; i++) {
+
+                touchRecorder.addTouchEvent(new Touch(touches[i].identifier, touches[i].pageX, touches[i].pageY, Date.now(), touchEventAdd))
+            }
+
+        }
+
+        function handleMouseMove(evt) {
+            if (!isMouseDown) {
+                return;
+            }
+
+            evt.preventDefault();
+            touchRecorder.addTouchEvent(new Touch(mouseIndex, evt.pageX, evt.pageY, Date.now(), touchEventAdd))
+        }
+
+        function handleEnd(evt) {
+            evt.preventDefault();
+            const touches = evt.changedTouches;
+            for (let i = 0; i < touches.length; i++) {
+                touchRecorder.addTouchEvent(new Touch(touches[i].identifier, touches[i].pageX, touches[i].pageY, Date.now(), touchEventEnd));
+                const event = new CustomEvent(touchEventEnd, {
+                    detail: touchRecorder.touchRecord[touches[i].identifier],
+                    bubbles: true,
+                    cancelable: true,
+                    composed: false,
+                });
+                el.dispatchEvent(event);
+            }
+
+        }
+
+        function handleMouseEnd(evt) {
+            if (!isMouseDown) {
+                return;
+            }
+            isMouseDown = false;
+            evt.preventDefault();
+            touchRecorder.addTouchEvent(new Touch(mouseIndex, evt.pageX, evt.pageY, Date.now(), touchEventEnd));
+
+            const event = new CustomEvent(touchEventEnd, {
+                detail: touchRecorder.touchRecord[mouseIndex],
+                bubbles: true,
+                cancelable: true,
+                composed: false,
+            });
+            el.dispatchEvent(event);
+        }
+
+
+        function log(msg) {
+            if (msg === "" || msg === " ") {
+                return
+            }
+            container.textContent = `${ msg } \n${ container.textContent }`;
+            const actions = container.textContent.split("\n");
+            actions.pop();
+            // Créer un objet pour stocker le nombre d'occurrences de chaque mot
+            var occurrences = {};
+
+            for (let i = 0; i < actions.length; i++) {
+                // Ignorer les mots vides    
+                occurrences[actions[i]] = 0;
+
+            }
+            // Parcourir le tableau de mots
+            for (var i = 0; i < actions.length; i++) {
+                // Ignorer les mots vides       
+                // Mettre à jour le compteur pour chaque mot dans l'objet
+                occurrences[actions[i]]++;
+            }
+            var finalOcc = []
+
+            var listOfWords = Object.keys(occurrences);
+            listOfWords.sort();
+
+            for (let j = 0; j < listOfWords.length; j++) {
+                finalOcc.push(listOfWords[j] + ": " + occurrences[listOfWords[j]])
+            }
+
+            overview.textContent = finalOcc.join("\n")
+        }
+
+        function saveTouch(touch) {
+            ongoingTouches.push(copyTouch(touch));
+        }
+
+        var joueurs = [];
+        var actions = [];
+
+        function refreshTable() {
+            var table = document.getElementById("pushButton");
+            // Get the reference to the tbody
+            var tbody = table.getElementsByTagName('tbody')[0];
+
+            var thead = table.getElementsByTagName('thead')[0];
+            thead.deleteRow(0);
+
+            // Remove all rows from tbody
+            while (tbody.rows.length > 0) {
+                tbody.deleteRow(0);
+            }
+
+            // on reconstruit
+            var nouvelleLigne = thead.insertRow(0);
+            var newCell = nouvelleLigne.insertCell(0);
+            newCell.textContent = "Joueur";
+
+            for (var i = 0; i < actions.length; i++) {
+                var nouvelleCellule = nouvelleLigne.insertCell(i + 1);
+                nouvelleCellule.textContent = actions[i];
+            }
+
+            for (let i = 0; i < joueurs.length; i++) {
+                var nouveauJoueur = tbody.insertRow(i);
+                var nouvelleCellule = nouveauJoueur.insertCell(0);
+                nouvelleCellule.textContent = joueurs[i];
+                for (let j = 0; j < actions.length; j++) {
+                    var newButtonCell = nouveauJoueur.insertCell(j + 1);
+                    var button = document.createElement("button");
+
+                    // Set the button text
+                    button.textContent = "GO!!";
+
+                    // Set the onclick function with parameters using a closure
+                    button.onclick = function() {
+                        const pIndex = i;
+                        const aIndex = j;
+                        addEvent(pIndex, aIndex);
+                    };
+
+                    // Append the button to a container in the HTML body
+                    newButtonCell.appendChild(button);
+
+                }
+            }
+
+        }
+
+        function addEvent(playerIndex, actionIndex) {
+            log(joueurs[playerIndex] + " " + actions[actionIndex]);
+        }
+
+        function addPlayer() {
+
+            joueurs.push(newValue.value);
+            refreshTable()
+        }
+
+        function addAction() {
+            actions.push(newValue.value);
+
+            refreshTable();
+        }
+
+        function showOrHide(elem) {
+            if (elem.style.display === "none") {
+                elem.style.display = "";
+            } else {
+                elem.style.display = "none";
+            }
+        }
+
+    </script>
+</head>
+
+<body>
+    <div id="eq">
+        <form name="eqfrom" action="javascript:handleIt()">
+            <label for="eqa">Equipe A:</label><br>
+            <input type="text" id="eqa" name="eqa" value=""><br>
+            <label for="eqb">Equipe B:</label><br>
+            <input type="text" id="eqb" name="eqb" value=""><br><br>
+            <input type="submit" value="weh!!">
+        </form>
+    </div>
+
+    <div class="flex-container">
+
+        <div class="column">
+            <div class="scroll">
+                Journal :
+                <pre id="log" style="border: 1px solid #ccc;"></pre>
+
+            </div>
+        </div>
+        <div class="column">
+            <div class="scroll">
+                Synthese :
+                <pre id="overview" style="border: 1px solid #ccc;"></pre>
+
+            </div>
+        </div>
+        <div class="column wide-column">
+            <table id="actionNames">
+                <thead>
+                    <tr>
+                        <th>Dessin</th>
+                        <th>Court</th>
+                        <th> </th>
+                        <th>Long</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>clic</td>
+                        <td><input type="text" id="shortCLICK" name="shortCLICK"></td>
+                        <td><button onclick="longCLICK.value=shortCLICK.value">=></button></td>
+                        <td><input type="text" id="longCLICK" name="longCLICK"></td>
+                    </tr>
+                    <tr>
+                        <td>haut gauche</td>
+                        <td><input type="text" id="shortUPLEFT" name="shortUPLEFT"></td>
+                        <td><button onclick="longUPLEFT.value=shortUPLEFT.value">=></button></td>
+                        <td><input type="text" id="longUPLEFT" name="longUPLEFT"></td>
+                    </tr>
+                    <tr>
+                        <td>haut</td>
+                        <td><input type="text" id="shortUP" name="shortUP"></td>
+                        <td><button onclick="longUP.value=shortUP.value">=></button></td>
+                        <td><input type="text" id="longUP" name="longUP"></td>
+                    </tr>
+                    <tr>
+                        <td>haut droit</td>
+                        <td><input type="text" id="shortUPRIGHT" name="shortUPRIGHT"></td>
+                        <td><button onclick="longUPRIGHT.value=shortUPRIGHT.value">=></button></td>
+                        <td><input type="text" id="longUPRIGHT" name="longUPRIGHT"></td>
+                    </tr>
+                    <tr>
+                        <td>droite</td>
+                        <td><input type="text" id="shortRIGHT" name="shortRIGHT"></td>
+                        <td><button onclick="longRIGHT.value=shortRIGHT.value">=></button></td>
+                        <td><input type="text" id="longRIGHT" name="longRIGHT"></td>
+                    </tr>
+                    <tr>
+                        <td>bas droit</td>
+                        <td><input type="text" id="shortDOWNRIGHT" name="shortDOWNRIGHT"></td>
+                        <td><button onclick="longDOWNRIGHT.value=shortDOWNRIGHT.value">=></button></td>
+                        <td><input type="text" id="longDOWNRIGHT" name="longDOWNRIGHT"></td>
+                    </tr>
+                    <tr>
+                        <td>bas</td>
+                        <td><input type="text" id="shortDOWN" name="shortDOWN"></td>
+                        <td><button onclick="longDOWN.value=shortDOWN.value">=></button></td>
+                        <td><input type="text" id="longDOWN" name="longDOWN"></td>
+                    </tr>
+                    <tr>
+                        <td>bas gauche</td>
+                        <td><input type="text" id="shortDOWNLEFT" name="shortDOWNLEFT"></td>
+                        <td><button onclick="longDOWNLEFT.value=shortDOWNLEFT.value">=></button></td>
+                        <td><input type="text" id="longDOWNLEFT" name="longDOWNLEFT"></td>
+                    </tr>
+                    <tr>
+                        <td>gauche</td>
+                        <td><input type="text" id="shortLEFT" name="shortLEFT"></td>
+                        <td><button onclick="longLEFT.value=shortLEFT.value">=></button></td>
+                        <td><input type="text" id="longLEFT" name="longLEFT"></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <table>
+        <tr>
+            <td onclick="showOrHide(canvasCell)">
+                <div class="vertical-text">
+                    touchpad
+                </div>
+            </td>
+            <td id="canvasCell">
+                <canvas id="canvas" width="600" height="600" style="border:solid black 1px;">
+                    Votre navigateur ne prend pas en charge l'élément canvas.
+                </canvas>
+            </td>
+            <td onclick="showOrHide(keyboard)">
+                <div class="vertical-text">
+                    keyboard
+                </div>
+            </td>
+
+            <td id="keyboard">
+                <input id="newValue">&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="addPlayer()">joueur</button>&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="addAction()">action</button>
+                <br>
+                <br>
+                <table id="pushButton">
+                    <thead>
+                        <tr>
+                            <th>Joueur</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+
+
+
+
+
+</body>
+
+</html>

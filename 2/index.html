@@ -1,0 +1,684 @@
+<html>
+
+<head>
+    <style>
+        div.scroll {
+
+            width: 600px;
+            height: 450px;
+            overflow-x: hidden;
+            overflow-y: auto;
+            text-align: center;
+            padding: 20px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid black;
+        }
+
+        th,
+        td {
+            padding: 5px;
+            text-align: center;
+        }
+
+        .flex-container {
+            display: flex;
+        }
+
+        .action-container {
+            display: flex;
+            flex-flow: row wrap;
+            justify-content: space-around;
+            row-gap: 80px
+        }
+
+        .flex-container-settings {
+            display: : flex;
+            flex-direction: column;
+            justify-content: space-around;
+            min-height: 300px
+        }
+
+        .column {
+            flex-grow: 1;
+        }
+
+        .wide-column {
+            flex: 2;
+        }
+
+        .vertical-text {
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            white-space: nowrap;
+        }
+
+        .players-container {
+            display: flex;
+            column-gap: 20px;
+            row-gap: 80px;
+            flex-flow: row wrap;
+            justify-content: space-around
+        }
+
+        .player-item {
+            flex-basis: 20%;
+            font-size: 24px;
+            background-color: burlywood
+        }
+
+        .action-item {
+            flex-basis: 30%;
+            font-size: 24px;
+        }
+
+        .keyboard-container {
+            display: flex;
+            flex-direction: column;
+            row-gap: 40px;
+        }
+
+    </style>
+    <script type="text/javascript">        
+        
+        var eqaName = ""
+        var eqbName = ""
+        var isMouseDown = false;
+        var el;
+        var container;
+
+        var activePlayer;
+
+        class Action {
+            constructor(pName) {
+                this.start = Date.now()
+                this.player = pName
+                this.infos = []
+                this.origin = ""
+            }
+
+            close(action) {
+                this.end = Date.now()
+                this.result = action
+                this.duration = (this.end - this.start) / 1000
+            }
+
+            addInfo(additionalInfo) {
+                this.infos.push(additionalInfo)
+            }
+
+            getOverview() {
+                const sep = ":"
+                const nbPo = countOcc(this.infos, "passe oubliee")
+                var info=""
+                if(this.infos[this.infos.length-1]){
+                    info=this.infos[this.infos.length-1]
+                }
+                return this.player + sep + this.result + sep + info + sep + this.duration + sep + nbPo + sep + this.origin
+            }
+
+            setOrigin(origin) {
+                this.origin = origin;
+            }
+        }
+
+        function countOcc(arr, s) {
+            var i = 0
+            arr.forEach((v) => {
+                if (v === s) {
+                    i++
+                }
+            })
+            return i
+        }
+
+        const actionsList = []
+
+        function setActivePlayer(pName) {
+            // document.getElementById(activePlayer).style.background='#000000';
+            // document.getElementById(pName).style.background='#00FF00';
+            if (actionsList.length > 0) {
+                closeAction("passe")
+            }
+            activePlayer = pName;
+            actionsList.push(new Action(pName))
+        }
+
+        function closeAction(act) {
+            var tempAct = actionsList.pop()
+            tempAct.close(act)
+            actionsList.push(tempAct)
+
+            overview.textContent = tempAct.getOverview() + "\n" + overview.textContent
+            cookieString=""
+            for(let i in actionsList){
+                cookieString+=actionsList[i].getOverview()+"!"
+            }
+            document.cookie="game="+cookieString+";path=/"
+        }
+
+        function setActionOrigin(ori) {
+            var tempAct = actionsList.pop()
+            tempAct.setOrigin(ori)
+            actionsList.push(tempAct)
+        }
+
+        const mouseIndex = 100;
+
+        const touchEventCreate = "create";
+        const touchEventAdd = "add";
+        const touchEventEnd = "end";
+
+        function Touch(id, x, y, timeStamp, event) {
+            this.id = id;
+            this.x = x;
+            this.y = y;
+            this.timeStamp = timeStamp;
+            this.event = event;
+        }
+
+        const noMoveSquarred = 25;
+        const shortMoveSquarred = 100 * 100;
+
+        function angle(cx, cy, ex, ey) {
+            var dy = ey - cy;
+            var dx = ex - cx;
+            var theta = Math.atan2(dy, dx); // range (-PI, PI]
+            theta *= 180 / Math.PI; // rads to degs, range (-180, 180]
+            if (theta < 0) theta = 360 + theta; // range [0, 360)
+            return theta;
+        }
+
+        function isBetween(x, bottom, top) {
+            return x >= bottom && x < top
+        }
+        const directionUp = "UP";
+        const directionDown = "DOWN";
+        const directionLeft = "LEFT";
+        const directionRight = "RIGHT";
+
+        const directionUpRight = "UPRIGHT";
+        const directionUpLeft = "UPLEFT";
+        const directionDownRight = "DOWNRIGHT";
+        const directionDownLeft = "DOWNLEFT";
+
+        const durationClick = 150;
+
+        function direction(angle) {
+            if (isBetween(angle, 292, 337)) {
+                return directionUpRight;
+            }
+
+            if (isBetween(angle, 247, 292)) {
+                return directionUp;
+            }
+
+            if (isBetween(angle, 202, 247)) {
+                return directionUpLeft
+            }
+
+            if (isBetween(angle, 157, 202)) {
+                return directionLeft;
+            }
+
+            if (isBetween(angle, 112, 157)) {
+                return directionDownLeft;
+
+            }
+
+            if (isBetween(angle, 67, 112)) {
+                return directionDown;
+            }
+
+            if (isBetween(angle, 22, 67)) {
+                return directionDownRight;
+            }
+
+            return directionRight
+        }
+
+
+
+        function analyzeTouches(touches, callback) {
+            var first = touches[0];
+            var last = touches.at(-1);
+            var deltaX = first.x - last.x;
+            var deltaY = first.y - last.y;
+            var distanceSquarred = deltaX * deltaX + deltaY * deltaY;
+
+            var touchLength = "CLICK";
+            if (distanceSquarred > noMoveSquarred) {
+                touchLength = "short"
+            };
+            if (distanceSquarred > shortMoveSquarred) {
+                touchLength = "long"
+            };
+
+            if (touchLength === "CLICK") {
+                if (last.timeStamp - first.timeStamp > durationClick) {
+                    touchLength = "long" + touchLength
+                } else {
+                    touchLength = "short" + touchLength
+                }
+            } else {
+                touchLength += direction(angle(first.x, first.y, last.x, last.y));
+            }
+            var inputElement = document.getElementById(touchLength);
+            const finalName = inputElement.value;
+            callback(finalName);
+        }
+
+
+        let touchRecorder = {
+            touchRecord: {},
+            addTouchEvent: function(evt) {
+                switch (evt.event) {
+                    case touchEventCreate:
+                        this.touchRecord[evt.id] = [evt];
+                        break;
+                    case touchEventAdd:
+                        this.touchRecord[evt.id].push(evt);
+                        break;
+                    case touchEventEnd:
+                        this.touchRecord[evt.id].push(evt);
+                        break;
+                }
+            }
+        }
+
+        function handleIt() {
+            eqaName = document.getElementById("eqa").value
+            eqbName = document.getElementById("eqb").value
+            alert(eqaName + " vs " + eqbName);
+            document.getElementById("eq").hidden = true
+        }
+
+        const endActions = ["time", "drop", "passe_ratee", "interception", "point"]
+        const originOfActions = ["pull", "drop", "passe_ratee", "interception", "time", "block"]
+
+        class Player {
+            constructor(numero, nom) {
+                this.name = nom
+                this.number = numero
+            }
+
+            getFullTitle() {
+                if (this.number === "") {
+                    return this.name
+                }
+                return this.number + "-" + this.name
+            }
+        }
+        const players = []
+        players.push(new Player("01", "Ulysse"))
+        players.push(new Player("19", "Emilien"))
+        players.push(new Player("14", "Antoine"))
+        players.push(new Player("24", "Maelis"))
+        players.push(new Player("22", "Indira"))
+        players.push(new Player("28", "Baptiste"))
+        players.push(new Player("66", "Joseph"))
+        players.push(new Player("09", "Gabin"))
+        players.push(new Player("00", "Lupin"))
+        players.push(new Player("33", "Elias"))
+        players.push(new Player("08", "Cedric"))
+
+
+        function startup() {
+            el = document.getElementById('touchpad');
+            container = document.getElementById('log')
+            el.addEventListener(touchEventEnd, function(evt) {
+                analyzeTouches(evt['detail'], log)
+            });
+            //finger touch
+            el.addEventListener('touchstart', handleStart);
+            el.addEventListener('touchend', handleEnd);
+            el.addEventListener('touchcancel', handleEnd);
+            el.addEventListener('touchmove', handleMove);
+
+            //mouse touch
+            el.addEventListener('mousedown', handleMouseStart);
+            el.addEventListener('mouseup', handleMouseEnd);
+            el.addEventListener('mouseout', handleMouseEnd);
+            el.addEventListener('mousemove', handleMouseMove);
+
+            endActions.forEach(addActionEnd)
+            originOfActions.forEach(addOriginOfAction)
+
+            players.sort()
+            players.forEach(addPlayer)
+        }
+
+        document.addEventListener('DOMContentLoaded', startup);
+
+        const ongoingTouches = [];
+
+        function handleStart(evt) {
+            evt.preventDefault();
+
+            const touches = evt.changedTouches;
+            for (let i = 0; i < touches.length; i++) {
+
+                touchRecorder.addTouchEvent(new Touch(touches[i].identifier, touches[i].pageX, touches[i].pageY, Date.now(), touchEventCreate))
+            }
+        }
+
+        function handleMouseStart(evt) {
+            isMouseDown = true;
+            evt.preventDefault();
+            touchRecorder.addTouchEvent(new Touch(mouseIndex, evt.pageX, evt.pageY, Date.now(), touchEventCreate))
+        }
+
+
+        function handleMove(evt) {
+            evt.preventDefault();
+
+            const touches = evt.changedTouches;
+            for (let i = 0; i < touches.length; i++) {
+
+                touchRecorder.addTouchEvent(new Touch(touches[i].identifier, touches[i].pageX, touches[i].pageY, Date.now(), touchEventAdd))
+            }
+
+        }
+
+        function handleMouseMove(evt) {
+            if (!isMouseDown) {
+                return;
+            }
+
+            evt.preventDefault();
+            touchRecorder.addTouchEvent(new Touch(mouseIndex, evt.pageX, evt.pageY, Date.now(), touchEventAdd))
+        }
+
+        function handleEnd(evt) {
+            evt.preventDefault();
+            const touches = evt.changedTouches;
+            for (let i = 0; i < touches.length; i++) {
+                touchRecorder.addTouchEvent(new Touch(touches[i].identifier, touches[i].pageX, touches[i].pageY, Date.now(), touchEventEnd));
+                const event = new CustomEvent(touchEventEnd, {
+                    detail: touchRecorder.touchRecord[touches[i].identifier],
+                    bubbles: true,
+                    cancelable: true,
+                    composed: false,
+                });
+                el.dispatchEvent(event);
+            }
+
+        }
+
+        function handleMouseEnd(evt) {
+            if (!isMouseDown) {
+                return;
+            }
+            isMouseDown = false;
+            evt.preventDefault();
+            touchRecorder.addTouchEvent(new Touch(mouseIndex, evt.pageX, evt.pageY, Date.now(), touchEventEnd));
+
+            const event = new CustomEvent(touchEventEnd, {
+                detail: touchRecorder.touchRecord[mouseIndex],
+                bubbles: true,
+                cancelable: true,
+                composed: false,
+            });
+            el.dispatchEvent(event);
+        }
+
+
+        const lastActions = []
+
+        function log(msg) {
+            if (msg === "" || msg === " ") {
+                return
+            }
+            //record action
+            var act = actionsList.pop()
+            act.addInfo(msg)
+            actionsList.push(act)
+
+            // show last actions
+            lastActions.unshift(msg)
+            if (lastActions.length > 10) {
+                lastActions.pop()
+            }
+            container.textContent = lastActions.join("\n")
+        }
+
+        function saveTouch(touch) {
+            ongoingTouches.push(copyTouch(touch));
+        }
+
+        var joueurs = [];
+        var actions = [];
+
+        function refreshTable() {
+            var table = document.getElementById("pushButton");
+            // Get the reference to the tbody
+            var tbody = table.getElementsByTagName('tbody')[0];
+
+            var thead = table.getElementsByTagName('thead')[0];
+            thead.deleteRow(0);
+
+            // Remove all rows from tbody
+            while (tbody.rows.length > 0) {
+                tbody.deleteRow(0);
+            }
+
+            // on reconstruit
+            var nouvelleLigne = thead.insertRow(0);
+            var newCell = nouvelleLigne.insertCell(0);
+            newCell.textContent = "Joueur";
+
+            for (var i = 0; i < actions.length; i++) {
+                var nouvelleCellule = nouvelleLigne.insertCell(i + 1);
+                nouvelleCellule.textContent = actions[i];
+            }
+
+            for (let i = 0; i < joueurs.length; i++) {
+                var nouveauJoueur = tbody.insertRow(i);
+                var nouvelleCellule = nouveauJoueur.insertCell(0);
+                nouvelleCellule.textContent = joueurs[i];
+                for (let j = 0; j < actions.length; j++) {
+                    var newButtonCell = nouveauJoueur.insertCell(j + 1);
+                    var button = document.createElement("button");
+
+                    // Set the button text
+                    button.textContent = "GO!!";
+
+                    // Set the onclick function with parameters using a closure
+                    button.onclick = function() {
+                        const pIndex = i;
+                        const aIndex = j;
+                        addEvent(pIndex, aIndex);
+                    };
+
+                    // Append the button to a container in the HTML body
+                    newButtonCell.appendChild(button);
+
+                }
+            }
+
+        }
+
+        function addEvent(playerIndex, actionIndex) {
+            log(joueurs[playerIndex] + " " + actions[actionIndex]);
+        }
+
+        function addNewPlayer() {
+            addPlayer(new Player(newPlayerNumber.value, newPlayer.value))
+        }
+
+        function addPlayer(player) {
+            joueurs.push(name);
+            playersContainer.insertAdjacentHTML('beforeend', '<button class="player-item" onClick=setActivePlayer("' + player.name + '")>' + player.getFullTitle() + '</button>')
+
+        }
+
+        function addAction() {
+            addActionEnd(newAction.value)
+        }
+
+        function addOrigin() {
+            addOriginOfAction(newOrigin.value)
+        }
+
+        function addActionEnd(action) {
+            actions.push(action);
+            actionsEnd.insertAdjacentHTML('beforeend', '<button class="action-item" onClick=closeAction("' + action + '")>' + action + '</button>')
+        }
+
+        function addOriginOfAction(ori) {
+            actionOrigin.insertAdjacentHTML('beforeend', '<button class="action-item" onClick=setActionOrigin("' + ori + '")>' + ori + '</button>')
+        }
+
+        function showOrHide(elem) {
+            if (elem.style.display === "none") {
+                elem.style.display = "";
+            } else {
+                elem.style.display = "none";
+            }
+        }
+
+        function clearPlayers() {
+            const erase = confirm("ATTENTION\nVoulez vous vraiment effacer tous les joueurs")
+            if (erase) {
+                players.length = 0
+                joueurs.length = 0
+
+                playersContainer.innerHTML = "";
+            }
+        }
+
+    </script>
+</head>
+
+<body>
+    
+<button onclick="showOrHide(settings)">show/hide</button>
+    <div class="flex-container" id="settings">
+        <div class="column wide-column">
+            <table id="actionNames">
+                <thead>
+                    <tr>
+                        <th>Dessin</th>
+                        <th>Court</th>
+                        <th> </th>
+                        <th>Long</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>clic</td>
+                        <td><input type="text" id="shortCLICK" name="shortCLICK" value="passe oubliee"></td>
+                        <td><button onclick="longCLICK.value=shortCLICK.value">=></button></td>
+                        <td><input type="text" id="longCLICK" name="longCLICK"></td>
+                    </tr>
+                    <tr>
+                        <td>haut gauche</td>
+                        <td><input type="text" id="shortUPLEFT" name="shortUPLEFT" value="hammer"></td>
+                        <td><button onclick="longUPLEFT.value=shortUPLEFT.value">=></button></td>
+                        <td><input type="text" id="longUPLEFT" name="longUPLEFT" value="hammer long"></td>
+                    </tr>
+                    <tr>
+                        <td>haut</td>
+                        <td><input type="text" id="shortUP" name="shortUP" value="avant"></td>
+                        <td><button onclick="longUP.value=shortUP.value">=></button></td>
+                        <td><input type="text" id="longUP" name="longUP" value="avant long"></td>
+                    </tr>
+                    <tr>
+                        <td>haut droit</td>
+                        <td><input type="text" id="shortUPRIGHT" name="shortUPRIGHT" value="knife"></td>
+                        <td><button onclick="longUPRIGHT.value=shortUPRIGHT.value">=></button></td>
+                        <td><input type="text" id="longUPRIGHT" name="longUPRIGHT" value="knife long"></td>
+                    </tr>
+                    <tr>
+                        <td>droite</td>
+                        <td><input type="text" id="shortRIGHT" name="shortRIGHT" value="swing"></td>
+                        <td><button onclick="longRIGHT.value=shortRIGHT.value">=></button></td>
+                        <td><input type="text" id="longRIGHT" name="longRIGHT" value="swing long"></td>
+                    </tr>
+                    <tr>
+                        <td>bas droit</td>
+                        <td><input type="text" id="shortDOWNRIGHT" name="shortDOWNRIGHT" value="dump/swing"></td>
+                        <td><button onclick="longDOWNRIGHT.value=shortDOWNRIGHT.value">=></button></td>
+                        <td><input type="text" id="longDOWNRIGHT" name="longDOWNRIGHT" value="dump/swing long"></td>
+                    </tr>
+                    <tr>
+                        <td>bas</td>
+                        <td><input type="text" id="shortDOWN" name="shortDOWN" value="dump"></td>
+                        <td><button onclick="longDOWN.value=shortDOWN.value">=></button></td>
+                        <td><input type="text" id="longDOWN" name="longDOWN" value="dump long"></td>
+                    </tr>
+                    <tr>
+                        <td>bas gauche</td>
+                        <td><input type="text" id="shortDOWNLEFT" name="shortDOWNLEFT" value="dump/swing"></td>
+                        <td><button onclick="longDOWNLEFT.value=shortDOWNLEFT.value">=></button></td>
+                        <td><input type="text" id="longDOWNLEFT" name="longDOWNLEFT" value="dump/swing long"></td>
+                    </tr>
+                    <tr>
+                        <td>gauche</td>
+                        <td><input type="text" id="shortLEFT" name="shortLEFT" value="swing"></td>
+                        <td><button onclick="longLEFT.value=shortLEFT.value">=></button></td>
+                        <td><input type="text" id="longLEFT" name="longLEFT" value="swing long"></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+        <div class="flex-container-settings">
+            <div class="flex-item"><input id="newPlayerNumber">&nbsp;&nbsp;&nbsp;&nbsp; Numero
+                <br><input id="newPlayer">&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="addNewPlayer()">joueur</button>
+            </div>
+            <br>
+            <br>
+            <div class="flex-item"><input id="newAction">&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="addAction()">action</button></div>
+            <br>
+            <br>
+            <div class="flex-item"><input id="newOrigin">&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="addOrigin()">origin</button></div>
+            <br>
+            <div class="flex-item"><button onclick="clearPlayers()">EFFACER joueurs</button></div>
+        </div>
+    </div>
+    <br>
+    <br>
+    <br>
+
+    <table>
+        <tr>
+            <td id="touchpad" width="500" height="400" style="vertical-align:top">
+                <pre id="log" width="500" height="600"></pre>
+            </td>
+            <td>
+                <div class="scroll">
+                    Synthese :
+                    <pre id="overview" style="border: 1px solid #ccc;"></pre>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+
+
+    <div id="keyboard" class="keyboard-container">
+        <br>
+        <div class="action-container" id="actionOrigin"></div>
+        <br>
+        <div class="players-container" id="playersContainer"></div>
+        <br>
+        <div class="action-container" id=actionsEnd></div>
+    </div>
+
+
+
+
+
+
+</body>
+
+</html>
