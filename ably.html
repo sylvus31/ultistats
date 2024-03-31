@@ -1,0 +1,40 @@
+<html>
+
+<head>
+
+    <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
+
+
+</head>
+<script>
+
+    async function fetchData() {
+        try {
+            const ably = new Ably.Realtime('xVLyHw.I398BA:ooS_8-Xwwach4hOIINmyz8pBps9z02k6cqs8nR8O2kU');
+            await ably.connection.once('connected');
+            console.log('Connected to Ably!');
+
+
+            // get the channel to subscribe to
+            const channel = ably.channels.get('quickstart');
+
+
+            /*
+              Subscribe to a channel.
+              The promise resolves when the channel is attached
+              (and resolves synchronously if the channel is already attached).
+            */
+            await channel.subscribe('greeting', (message) => {
+                console.log('Received a greeting message in realtime: ' + message.data)
+            });
+
+
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    fetchData();
+</script>
+
+</html>

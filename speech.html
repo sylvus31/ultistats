@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        .correct {
+            color: green;
+        }
+    </style>
+    <style>
+        .incorrect {
+            color: red;
+        }
+    </style>
+    <title>Speech Recognition with Number Grammar</title>
+</head>
+
+<body>
+    <h1>Speech Recognition with Number Grammar</h1>
+    <p>Click the button to start listening...</p>
+
+    <button id="startRecognition">Start Recognition</button> 
+    <p id="off"><font color="red">off</font> </p>
+    <p id="on" style="display: none;"><font color="green">on</font> </p>
+
+    <div id="output"></div>
+
+    <script>
+
+        // Splits the given transcript into words, removes any non-alphanumeric characters from each word, and filters out any empty strings.
+        function cleanWords(transcript) {
+            return transcript.split(/\s+/)
+                // .map(word => word.replace(/[^a-zA-Z0-9]/g, ''))
+                .filter(Boolean);
+        }
+        const recognition = new webkitSpeechRecognition(); // Create a new instance of SpeechRecognition
+        recognition.continuous = true; // Set continuous to true to listen continuously
+        recognition.interimResults = true; // Set interimResults to true to get partial results
+
+        const numbersArray = [
+            "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" +
+            "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", +
+            "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", +
+            "30", "31", "32", "33", "34", "35", "36", "37", "38", "39"
+        ];
+        const namesArray = ["max", "ulysse", "elias", "indira", "antoine", "gabin", "elouan", "baptiste", "maelys", "lupin"];
+        const positiveActionsArray = ["swing", "dump", "longue", "break", "interception", "point", "hammer"];
+        const negativeActionsArray = ["drop", "raté", "oubli"];
+
+        output = document.getElementById('output');
+        output.innerHTML += "Mots reconnus:<br>";
+        output.innerHTML += numbersArray + "<br>";
+        output.innerHTML += namesArray + "<br>";
+        output.innerHTML += positiveActionsArray + "<br>";
+        output.innerHTML += negativeActionsArray + "<br>";
+
+
+        const numberGrammar = '#JSGF V1.0; grammar numbers; public <number> = (' + numbersArray.join(' | ') + ');';
+        const namesGrammar = '#JSGF V1.0; grammar names; public <name> = (' + namesArray.join(' | ') + ');';
+        const negativeActionGrammar = '#JSGF V1.0; grammar negativeActions; public <negativeAction> = (' + negativeActionsArray.join(' | ') + ');';
+        const positiveActionGrammar = '#JSGF V1.0; grammar positiveActions; public <positiveAction> = (' + positiveActionsArray.join(' | ') + ');';
+        const grammarList = new webkitSpeechGrammarList();
+        grammarList.addFromString(numberGrammar, 1);
+        grammarList.addFromString(namesGrammar, 1);
+        grammarList.addFromString(negativeActionGrammar, 1);
+        grammarList.addFromString(positiveActionGrammar, 1);
+        recognition.lang = 'fr-FR';
+        recognition.grammars = grammarList;
+
+        function isPartOfGrammar(word) {
+            return numbersArray.includes(word) || namesArray.includes(word) || positiveActionsArray.includes(word) || negativeActionsArray.includes(word);
+        }
+
+        function decorateWord(word, isCorrect) {
+            if (isCorrect) {
+                return '<span class="correct">' + word + '</span>';
+            } else {
+                return '<span class="incorrect">' + word + '</span>';
+            }
+        }
+
+        lastWord = "";
+        recognition.onresult = function (event) {
+            let transcript = '';
+
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                console.log(event.results[i].isFinal, event.results[i][0], event.results[i])
+                console.log(event.results[i].isFinal, event.results[i][0], event.results[i])
+                const wordList = cleanWords(event.results[i][0].transcript);
+                // const lastPosition = wordList.lastIndexOf(lastWord);
+                // const newWordList=wordList.slice(lastPosition+1);
+                // lastWord=newWordList[newWordList.length-1];
+
+
+
+                // for (let j = 0; j < newWordList.length; j++) {
+                //     transcript += decorateWord(wordList[j], isPartOfGrammar(wordList[j].toLowerCase())) + ' ';
+                // }
+                if (event.results[i].isFinal) {
+                    transcript += i + ': ' + event.results[i].isFinal + ":" + event.results[i][0].transcript;
+                    document.getElementById('output').innerHTML += transcript + '<br>'; // Display the transcript on the page with a new line
+                }
+            }
+
+            
+        };
+
+        recognition.onend = function () {
+            on.style.display = "none";
+            off.style.display = "block";
+            recognition.start();
+            document.getElementById('output').innerHTML += "new recognition" + '<br>'
+        };
+
+        recognition.onstart = function () {
+            on.style.display = "block";
+            off.style.display = "none";
+            
+        };
+
+
+        document.getElementById('startRecognition').onclick = function () {
+            recognition.start(); // Start speech recognition
+        };
+    </script>
+</body>
+
+</html>
