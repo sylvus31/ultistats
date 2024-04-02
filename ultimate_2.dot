@@ -1,0 +1,44 @@
+digraph G {
+    creation_match->creation_match[label="adversaire, attaque_ou_defense, ..."]
+    creation_match->choix_de_la_ligne
+    choix_de_la_ligne->choix_de_la_ligne[label="ajouter joueur"]
+    choix_de_la_ligne->interface_defense[label="validation et auto"]
+    choix_de_la_ligne->interface_attaque[label="validation et auto"]
+    interface_attaque->pull
+    pull->pull[label="tombe au sol, brick, joue depuis une ligne, depart depuis la zone,..."]
+    pull->joueur_actif
+    joueur_actif -> joueur_actif [label="passe_oubliee"]
+    joueur_actif -> passe_choisie [label="swing, hammer,..."]
+    joueur_actif->turnover[label="drop, time, passe ratee, interception"]
+    joueur_actif->receveur[label="passe sans modifieur"]
+    receveur->joueur_actif[label="auto"]
+    receveur->receveur[label="catch modifieur: dive, jump, duel, ..."]
+    receveur->nouveau_point[label="marque un point"]
+    nouveau_point->choix_de_la_ligne[label="auto"]
+    passe_choisie->passe_choisie[label="passe modifieur: long, break..."]
+    passe_choisie->turnover[label="passe ratee"]
+    passe_choisie->joueur_actif[label="swing, hammer,..."]
+    
+    turnover->interface_defense
+
+    interface_defense->passe_choisie_D
+    interface_defense->defenseur_attribue[label="choix de notre joueur qui marque le receveur"]
+    defenseur_attribue->passe_choisie_D[label="swing, hammer,..."]
+    passe_choisie_D->passe_choisie_D[label="modifieur: break, cut ouvert, lanceur demarque, ..."]
+    passe_choisie_D->defenseur_attribue[label="choix de notre joueur qui marque le receveur"]
+    defenseur_attribue->autre_defenseur_attribue[label="passe sans infos"]
+    autre_defenseur_attribue->defenseur_attribue[label="auto"]
+    passe_choisie_D->autre_passe_choisie_D[label="pas d'info du defenseur"]
+    autre_passe_choisie_D->passe_choisie_D[label="auto"]
+    passe_choisie_D->turnover_D[label="passe_ratee, interception, time,block"]
+    passe_choisie_D->point_D
+    turnover_D->turnover_D[label="ajouter joueur responsable"]
+    turnover_D->interface_attaque
+
+    point_D->nouveau_point
+
+
+
+
+
+}
