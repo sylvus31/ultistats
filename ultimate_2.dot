@@ -34,6 +34,7 @@ digraph G {
     passe_choisie_D->point_D
     turnover_D->turnover_D[label="ajouter joueur responsable"]
     turnover_D->interface_attaque
+    interface_attaque->joueur_actif [label="auto add pull"]
 
     point_D->nouveau_point
 

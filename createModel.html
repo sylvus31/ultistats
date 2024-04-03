@@ -1,0 +1,192 @@
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <style>
+        .collapsible {
+          background-color: #777;
+          color: white;
+          cursor: pointer;
+          padding: 18px;
+          width: 100%;
+          border: none;
+          text-align: left;
+          outline: none;
+          font-size: 15px;
+        }
+        
+        .active, .collapsible:hover {
+          background-color: #555;
+        }
+        
+        .content {
+          padding: 0 18px;
+          display: none;
+          overflow: hidden;
+          background-color: #f1f1f1;
+        }
+        </style>
+    <script>
+        class PullingEvents {
+            constructor() {
+                this.startingLocations = []
+            }
+            addStartingLocation(startingLocation) {
+                if (!this.startingLocations.includes(startingLocation)) {
+                    this.startingLocations.push(startingLocation)
+                    return true
+                }
+                return false
+            }
+
+            removeStartingLocation(startingLocation) {
+                this.startingLocations.remove(startingLocation)
+            }
+        }
+
+        class AttackingPlayerActions {
+            constructor() {
+                this.catchModifiers = []
+                this.turnoverReasons = []
+            }
+
+            addCatchModifier(catchModifier) {
+                if (!this.catchModifiers.includes(catchModifier)) {
+                    this.catchModifiers.push(catchModifier)
+                    return true
+                }
+                return false
+            }
+
+            removeCatchModifier(catchModifier) {
+                this.catchModifiers.remove(catchModifier)
+            }
+
+            addTurnoverReason(turnoverReason) {
+                if (!this.turnoverReasons.includes(turnoverReason)) {
+                    this.turnoverReasons.push(turnoverReason)
+                    return true
+                }
+                return false
+            }
+
+            removeTurnoverReason(turnoverReason) {
+                this.turnoverReasons.remove(turnoverReason)
+            }
+        }
+
+        class AttackingPasses {
+
+            constructor() {
+                this.possiblePasses = []
+                this.passModifiers = []
+                this.defaultPass="???"
+            }
+
+            addPossiblePass(possiblePass) {
+                if (!this.possiblePasses.includes(possiblePass)) {
+                    this.possiblePasses.push(possiblePass)
+                    return true
+                }
+                return false
+            }
+
+            removePossiblePass(possiblePass) {
+                this.possiblePasses.remove(possiblePass)
+            }
+
+            addPassModifier(passModifier) {
+                if (!this.passModifiers.includes(passModifier)) {
+                    this.passModifiers.push(passModifier)
+                    return true
+                }
+                return false
+            }
+
+            removePassModifier(passModifier) {
+                this.passModifiers.remove(passModifier)
+            }
+
+            setDefaultPass(defaultPass) {
+                if(this.possiblePasses.includes(defaultPass)) {
+                    this.defaultPass = defaultPass
+                    return true
+                }
+                return false
+            }
+        }
+
+        class AttackingEvents {
+
+            constructor() {
+                this.pullingEvents = new PullingEvents()
+            }
+
+        }
+
+        class DefendingEvents {
+        }
+        class Model {
+            constructor(name = "???") {
+                this.name = name
+                this.attackingEvents = new AttackingEvents()
+                this.defendingEvents = new DefendingEvents()
+            }
+
+            setName(name) {
+                this.name = name
+            }
+        }
+
+    </script>
+</head>
+<body>
+<h1>Attacking events to log</h1>
+
+<h2>Pull events</h2>
+what do you want to record about a pull: catched or landed, played form brick or side line?
+<input type="text" id="pullingEvent" value="???"> <button onclick="addPullingEvent()">Add</button>
+<div id="pullingEventsDiv"></div>
+
+<h2>Attacking player actions</h2>
+<ul>
+<li>How did the player got the disc: layout, high separation, duel, jump, hard catch?</li>
+<input type="text" id="catchModifier" value="???"> <button onclick="addCatchModifier()">Add</button>
+<div id="catchModifiersDiv"></div>
+<li>What is the player's turnover reason: bad throw, timeout, drop?</li>
+<input type="text" id="turnoverReason" value="???"> <button onclick="addTurnoverReason()">Add</button>
+<div id="turnoverReasonsDiv"></div>
+</ul>
+
+<h2>Passes</h2>
+<ul>
+    <li>Kind of pass you want to record: swing, dump, hammer, side, back,...</li>
+    <input type="text" id="passModifier" value="???"> <button onclick="addPassModifier()">Add</button>
+    <div id="passModifiersDiv"></div>
+    <li>the pass characterics: break, long, hail Mary, ...</li>
+    <input type="text" id="possiblePass" value="???"> <button onclick="addPossiblePass()">Add</button>
+    <div id="possiblePassesDiv"></div>
+    <li>what is the default pass: the kind of pass registered when not specified</li>
+    <label for="defaultPass">Select a pass:</label>
+    <select id="defaultPass">
+    
+    </select>
+</ul>
+</body>
+<script>
+    var coll = document.getElementsByClassName("collapsible");
+    var i;
+    
+    for (i = 0; i < coll.length; i++) {
+      coll[i].addEventListener("click", function() {
+        this.classList.toggle("active");
+        var content = this.nextElementSibling;
+        if (content.style.display === "block") {
+          content.style.display = "none";
+        } else {
+          content.style.display = "block";
+        }
+      });
+    }
+    </script>
+</html>
