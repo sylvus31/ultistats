@@ -3,112 +3,155 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <style>
+        body {
+            background-color: #222;
+            color: bisque;
+        }
+
+        input {
+            background-color: #444;
+            color: beige;
+        }
+
+        button {
+            background-color: #444;
+            color: beige;
+            border-radius: 4px;
+        }
+
+        select {
+            background-color: #444;
+            color: beige;
+        }
+
         .collapsible {
-          background-color: #777;
-          color: white;
-          cursor: pointer;
-          padding: 18px;
-          width: 100%;
-          border: none;
-          text-align: left;
-          outline: none;
-          font-size: 15px;
+            background-color: #777;
+            color: white;
+            cursor: pointer;
+            padding: 18px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 15px;
         }
-        
-        .active, .collapsible:hover {
-          background-color: #555;
+
+        .active,
+        .collapsible:hover {
+            background-color: #555;
         }
-        
+
         .content {
-          padding: 0 18px;
-          display: none;
-          overflow: hidden;
-          background-color: #f1f1f1;
+            padding: 0 18px;
+            display: none;
+            overflow: hidden;
+            background-color: #f1f1f1;
         }
-        </style>
+    </style>
     <script>
+
+        const defaultmodelString = '{"name":"example","attackingPlayerActions":{"catchModifiers":["layout","high separation","duel","hard catch"],"turnoverReasons":["bad throw","timeout"]},"attackingPasses":{"possiblePasses":["swing","hammer","dump","skoober","knife","side","back"],"passModifiers":["break","long","hail Mary","bad hand"]},"pullingEvents":{"startingLocations":["brick","right line","left line","end zone"]}}'
+        function canAdd(element, array) {
+            element = element.trim()
+            if (element.length == 0) {
+                return false
+            }
+            if (array.includes(element)) {
+                return false
+            }
+            return true
+        }
+
+        function addElementToArray(element, array) {
+            if (canAdd(element, array)) {
+                array.push(element)
+                return true
+            }
+            return false
+        }
+
+        function removeElementFromArray(element, array) {
+            let index = array.indexOf(element)
+            if (index > -1) {
+                array.splice(index, 1)
+                return true
+            }
+            return false
+        }
         class PullingEvents {
-            constructor() {
+            constructor(jsonObj = "") {
                 this.startingLocations = []
+
+                if (jsonObj != "") {
+                    this.startingLocations = jsonObj.startingLocations
+                }
             }
             addStartingLocation(startingLocation) {
-                if (!this.startingLocations.includes(startingLocation)) {
-                    this.startingLocations.push(startingLocation)
-                    return true
-                }
-                return false
+                return addElementToArray(startingLocation, this.startingLocations)
             }
 
             removeStartingLocation(startingLocation) {
-                this.startingLocations.remove(startingLocation)
+                removeElementFromArray(startingLocation, this.startingLocations)
             }
         }
 
         class AttackingPlayerActions {
-            constructor() {
+            constructor(jsonObj = "") {
                 this.catchModifiers = []
                 this.turnoverReasons = []
+
+                if (jsonObj != "") {
+                    this.catchModifiers = jsonObj.catchModifiers
+                    this.turnoverReasons = jsonObj.turnoverReasons
+                }
             }
 
             addCatchModifier(catchModifier) {
-                if (!this.catchModifiers.includes(catchModifier)) {
-                    this.catchModifiers.push(catchModifier)
-                    return true
-                }
-                return false
+                return addElementToArray(catchModifier, this.catchModifiers)
             }
 
             removeCatchModifier(catchModifier) {
-                this.catchModifiers.remove(catchModifier)
+                removeElementFromArray(catchModifier, this.catchModifiers)
             }
 
             addTurnoverReason(turnoverReason) {
-                if (!this.turnoverReasons.includes(turnoverReason)) {
-                    this.turnoverReasons.push(turnoverReason)
-                    return true
-                }
-                return false
+                return addElementToArray(turnoverReason, this.turnoverReasons)
             }
 
             removeTurnoverReason(turnoverReason) {
-                this.turnoverReasons.remove(turnoverReason)
+                removeElementFromArray(turnoverReason, this.turnoverReasons)
             }
         }
 
         class AttackingPasses {
 
-            constructor() {
+            constructor(jsonObj = "") {
                 this.possiblePasses = []
                 this.passModifiers = []
-                this.defaultPass="???"
+                if (jsonObj != "") {
+                    this.possiblePasses = jsonObj.possiblePasses
+                    this.passModifiers = jsonObj.passModifiers
+                }
             }
 
             addPossiblePass(possiblePass) {
-                if (!this.possiblePasses.includes(possiblePass)) {
-                    this.possiblePasses.push(possiblePass)
-                    return true
-                }
-                return false
+                return addElementToArray(possiblePass, this.possiblePasses)
             }
 
             removePossiblePass(possiblePass) {
-                this.possiblePasses.remove(possiblePass)
+                removeElementFromArray(possiblePass, this.possiblePasses)
             }
 
             addPassModifier(passModifier) {
-                if (!this.passModifiers.includes(passModifier)) {
-                    this.passModifiers.push(passModifier)
-                    return true
-                }
-                return false
+                return addElementToArray(passModifier, this.passModifiers)
             }
 
             removePassModifier(passModifier) {
-                this.passModifiers.remove(passModifier)
+                removeElementFromArray(passModifier, this.passModifiers)
             }
 
             setDefaultPass(defaultPass) {
-                if(this.possiblePasses.includes(defaultPass)) {
+                if (this.possiblePasses.includes(defaultPass)) {
                     this.defaultPass = defaultPass
                     return true
                 }
@@ -116,21 +159,13 @@
             }
         }
 
-        class AttackingEvents {
 
-            constructor() {
-                this.pullingEvents = new PullingEvents()
-            }
-
-        }
-
-        class DefendingEvents {
-        }
         class Model {
             constructor(name = "???") {
                 this.name = name
-                this.attackingEvents = new AttackingEvents()
-                this.defendingEvents = new DefendingEvents()
+                this.attackingPlayerActions = new AttackingPlayerActions()
+                this.attackingPasses = new AttackingPasses()
+                this.pullingEvents = new PullingEvents()
             }
 
             setName(name) {
@@ -138,55 +173,210 @@
             }
         }
 
+
+
+        var model = new Model()
+
+        function addPullingEvent() {
+            model.pullingEvents.addStartingLocation(document.getElementById("pullingEvent").value)
+            showPullingEvents()
+        }
+
+        function removePullingEvent(startingLocation) {
+            console.log(startingLocation)
+            model.pullingEvents.removeStartingLocation(startingLocation)
+            showPullingEvents()
+        }
+
+        function showPullingEvents() {
+            let innerHTML = ''
+            model.pullingEvents.startingLocations.forEach(element => {
+                innerHTML += '<button onclick="removePullingEvent(this.innerText)">' + element + '</button>&nbsp;'
+            });
+            document.getElementById("pullingEventsDiv").innerHTML = innerHTML
+        }
+
+        function addCatchModifier() {
+            model.attackingPlayerActions.addCatchModifier(document.getElementById("catchModifier").value)
+            showCatchModifiers()
+        }
+
+        function removeCatchModifier(catchModifier) {
+            model.attackingPlayerActions.removeCatchModifier(catchModifier)
+            showCatchModifiers()
+        }
+
+        function showCatchModifiers() {
+            let innerHTML = ''
+            model.attackingPlayerActions.catchModifiers.forEach(element => {
+                innerHTML += '<button onclick="removeCatchModifier(this.innerText)">' + element + '</button>&nbsp;'
+            });
+            document.getElementById("catchModifiersDiv").innerHTML = innerHTML
+        }
+
+        function addTurnoverReason() {
+            model.attackingPlayerActions.addTurnoverReason(document.getElementById("turnoverReason").value)
+            showTurnoverReasons()
+        }
+
+        function removeTurnoverReason(turnoverReason) {
+            model.attackingPlayerActions.removeTurnoverReason(turnoverReason)
+            showTurnoverReasons()
+        }
+
+        function showTurnoverReasons() {
+            let innerHTML = ''
+            model.attackingPlayerActions.turnoverReasons.forEach(element => {
+                innerHTML += '<button onclick="removeTurnoverReason(this.innerText)">' + element + '</button>&nbsp;'
+            });
+            document.getElementById("turnoverReasonsDiv").innerHTML = innerHTML
+        }
+
+        function addPossiblePass() {
+            model.attackingPasses.addPossiblePass(document.getElementById("possiblePass").value)
+            showPossiblePasses()
+        }
+
+        function removePossiblePass(possiblePass) {
+            model.attackingPasses.removePossiblePass(possiblePass)
+            showPossiblePasses()
+        }
+
+        function showPossiblePasses() {
+            let innerHTML = ''
+            model.attackingPasses.possiblePasses.forEach(element => {
+                innerHTML += '<button onclick="removePossiblePass(this.innerText)">' + element + '</button>&nbsp;'
+            });
+            document.getElementById("possiblePassesDiv").innerHTML = innerHTML
+        }
+
+        function addPassModifier() {
+            model.attackingPasses.addPassModifier(document.getElementById("passModifier").value)
+            showPassModifiers()
+        }
+
+        function removePassModifier(passModifier) {
+            model.attackingPasses.removePassModifier(passModifier)
+            showPassModifiers()
+        }
+
+        function showPassModifiers() {
+            let innerHTML = ''
+            model.attackingPasses.passModifiers.forEach(element => {
+                innerHTML += '<button onclick="removePassModifier(this.innerText)">' + element + '</button>&nbsp;'
+            });
+            document.getElementById("passModifiersDiv").innerHTML = innerHTML
+        }
+
+        function saveModel() {
+            let givenName = document.getElementById("modelName").value
+            if (givenName == "???") {
+                alert("Please give your model a name")
+                return
+            }
+            model.name = givenName
+
+            file_content = JSON.stringify(model)
+            var bb = new Blob([file_content], { type: 'text/plain' });
+            var a = document.createElement('a');
+            a.download = model.name + ".txt"
+            a.href = window.URL.createObjectURL(bb);
+            a.click();
+        }
+
+        function showModelName() {
+            document.getElementById("modelName").value = model.name
+        }
+
+
+        function showAll() {
+            showModelName()
+            showPullingEvents()
+            showCatchModifiers()
+            showTurnoverReasons()
+            showPossiblePasses()
+            showPassModifiers()
+        }
+
     </script>
 </head>
+
 <body>
-<h1>Attacking events to log</h1>
+    <h1>Model</h1>
+    <label for="modelName">Model name:</label>
+    <input type="text" id="modelName" value="???">
+    <button onclick="saveModel()"> SAVE</button><br>
+    <label for="fileInput">Load model:</label>
+    <input type="file" id="fileInput" onchange="loadFile(this)"> &nbsp; It will overwrite the current model.
+    <h1>Attacking events to log</h1>
+    <h2>Pull events</h2>
+    what do you want to record about a pull: catched or landed, played from brick or side line?<br>
+    <input type="text" id="pullingEvent" value="???"> <button onclick="addPullingEvent()">Add</button>
+    <div id="pullingEventsDiv"></div>
 
-<h2>Pull events</h2>
-what do you want to record about a pull: catched or landed, played form brick or side line?
-<input type="text" id="pullingEvent" value="???"> <button onclick="addPullingEvent()">Add</button>
-<div id="pullingEventsDiv"></div>
+    <h2>Attacking player actions</h2>
+    <ul>
+        <li>How did the player got the disc: layout, high separation, duel, jump, hard catch?</li>
+        <input type="text" id="catchModifier" value="???"> <button onclick="addCatchModifier()">Add</button>
+        <div id="catchModifiersDiv"></div>
+        <li>What is the player's turnover reason: bad throw, timeout, drop?</li>
+        <input type="text" id="turnoverReason" value="???"> <button onclick="addTurnoverReason()">Add</button>
+        <div id="turnoverReasonsDiv"></div>
+    </ul>
 
-<h2>Attacking player actions</h2>
-<ul>
-<li>How did the player got the disc: layout, high separation, duel, jump, hard catch?</li>
-<input type="text" id="catchModifier" value="???"> <button onclick="addCatchModifier()">Add</button>
-<div id="catchModifiersDiv"></div>
-<li>What is the player's turnover reason: bad throw, timeout, drop?</li>
-<input type="text" id="turnoverReason" value="???"> <button onclick="addTurnoverReason()">Add</button>
-<div id="turnoverReasonsDiv"></div>
-</ul>
+    <h2>Passes</h2>
+    <ul>
+        <li>Kind of pass you want to record: swing, dump, hammer, side, back,...</li>
+        <input type="text" id="possiblePass" value="???"> <button onclick="addPossiblePass()">Add</button>
+        <div id="possiblePassesDiv"></div>
+        <li>the pass characterics: break, long, hail Mary, ...</li>
+        <input type="text" id="passModifier" value="???"> <button onclick="addPassModifier()">Add</button>
+        <div id="passModifiersDiv"></div>
+    </ul>
 
-<h2>Passes</h2>
-<ul>
-    <li>Kind of pass you want to record: swing, dump, hammer, side, back,...</li>
-    <input type="text" id="passModifier" value="???"> <button onclick="addPassModifier()">Add</button>
-    <div id="passModifiersDiv"></div>
-    <li>the pass characterics: break, long, hail Mary, ...</li>
-    <input type="text" id="possiblePass" value="???"> <button onclick="addPossiblePass()">Add</button>
-    <div id="possiblePassesDiv"></div>
-    <li>what is the default pass: the kind of pass registered when not specified</li>
-    <label for="defaultPass">Select a pass:</label>
-    <select id="defaultPass">
-    
-    </select>
-</ul>
+
 </body>
 <script>
     var coll = document.getElementsByClassName("collapsible");
     var i;
-    
+
     for (i = 0; i < coll.length; i++) {
-      coll[i].addEventListener("click", function() {
-        this.classList.toggle("active");
-        var content = this.nextElementSibling;
-        if (content.style.display === "block") {
-          content.style.display = "none";
-        } else {
-          content.style.display = "block";
-        }
-      });
+        coll[i].addEventListener("click", function () {
+            this.classList.toggle("active");
+            var content = this.nextElementSibling;
+            if (content.style.display === "block") {
+                content.style.display = "none";
+            } else {
+                content.style.display = "block";
+            }
+        });
     }
-    </script>
+
+
+    function loadModel(modelString) {
+        var loadedModel = JSON.parse(modelString)
+
+        model = new Model(loadedModel.name)
+        model.attackingPlayerActions = new AttackingPlayerActions(loadedModel.attackingPlayerActions)
+        model.attackingPasses = new AttackingPasses(loadedModel.attackingPasses)
+        model.pullingEvents = new PullingEvents(loadedModel.pullingEvents)
+
+        showAll()
+    }
+
+    function loadFile() {
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+            const content = e.target.result;
+            console.log(content);
+
+            loadModel(content)
+        };
+
+        reader.readAsText(file);
+    }
+</script>
+
 </html>
