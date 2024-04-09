@@ -1,0 +1,76 @@
+<html>
+    <head>
+        <style>
+            body {
+                background-color: #222;
+                color: bisque;
+            }
+    
+            input {
+                background-color: #444;
+                color: beige;
+            }
+    
+            button {
+                background-color: #444;
+                color: beige;
+                border-radius: 4px;
+            }
+    
+            select {
+                background-color: #444;
+                color: beige;
+            }
+    
+            .collapsible {
+                background-color: #777;
+                color: white;
+                cursor: pointer;
+                padding: 18px;
+                width: 100%;
+                border: none;
+                text-align: left;
+                outline: none;
+                font-size: 15px;
+            }
+    
+            .active,
+            .collapsible:hover {
+                background-color: #555;
+            }
+    
+            .content {
+                padding: 0 18px;
+                display: none;
+                overflow: hidden;
+                background-color: #f1f1f1;
+            }
+            .error {
+    background-color: lightcoral;
+  }
+        </style>
+
+    </head>
+    <body>
+        <h1>Model with inputs</h1>
+    <label for="modelName">Model name:</label>
+    <input type="text" id="modelName" value="???">
+    <button onclick="saveModel()"> SAVE</button><br>
+    <label for="fileInput">Load model:</label>
+    <input type="file" id="fileInput" onchange="loadFile(this)"> &nbsp; It will overwrite the current model.
+
+    <h2>Attacking player actions</h2>
+    <h3> Catch modifiers</h3>
+        <div id="catchModifiersDiv"></div>
+        <table>
+            <tr><th>Action</th><th>key</th><th>special key</th></tr>
+            <tr><td>layout</td><td>l</td><td></td></tr>
+            <tr class="error"><td>high separation</td><td>h</td><td></td></tr>
+            <tr class="error"><td>hard catch</td><td>h</td><td></td></tr>
+        </table>
+    <h3>Turnover reasons</h3>
+        <div id="turnoverReasonsDiv"></div>
+    </ul>
+
+    </body>
+</html>
