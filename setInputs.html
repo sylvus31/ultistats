@@ -1,58 +1,111 @@
 <html>
-    <head>
-        <style>
-            body {
-                background-color: #222;
-                color: bisque;
-            }
-    
-            input {
-                background-color: #444;
-                color: beige;
-            }
-    
-            button {
-                background-color: #444;
-                color: beige;
-                border-radius: 4px;
-            }
-    
-            select {
-                background-color: #444;
-                color: beige;
-            }
-    
-            .collapsible {
-                background-color: #777;
-                color: white;
-                cursor: pointer;
-                padding: 18px;
-                width: 100%;
-                border: none;
-                text-align: left;
-                outline: none;
-                font-size: 15px;
-            }
-    
-            .active,
-            .collapsible:hover {
-                background-color: #555;
-            }
-    
-            .content {
-                padding: 0 18px;
-                display: none;
-                overflow: hidden;
-                background-color: #f1f1f1;
-            }
-            .error {
-    background-color: lightcoral;
-  }
-        </style>
 
-    </head>
-    <body>
-        <h1>Model with inputs</h1>
+<head>
+    <style>
+        body {
+            background-color: #222;
+            color: bisque;
+        }
+
+        input {
+            background-color: #444;
+            color: beige;
+        }
+
+        button {
+            background-color: #444;
+            color: beige;
+            border-radius: 4px;
+        }
+
+        select {
+            background-color: #444;
+            color: beige;
+        }
+
+        .collapsible {
+            background-color: #777;
+            color: white;
+            cursor: pointer;
+            padding: 18px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 15px;
+        }
+
+        .active,
+        .collapsible:hover {
+            background-color: #555;
+        }
+
+        .content {
+            padding: 0 18px;
+            display: none;
+            overflow: hidden;
+            background-color: #f1f1f1;
+        }
+
+        .ok {
+            background-color: rgb(234, 247, 234);
+            color: #555;
+        }
+
+        .error {
+            background-color: lightcoral;
+        }
+
+        td {
+            padding: 5px;
+            text-align: center;
+            position: relative;
+            /* Required for positioning the tooltip */
+        }
+
+        .tooltip {
+            visibility: hidden;
+            background-color: black;
+            color: white;
+            text-align: center;
+            padding: 5px;
+            border-radius: 6px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -50px;
+            /* Adjust this value to position the tooltip */
+        }
+
+        td:hover .tooltip {
+            visibility: visible;
+        }
+
+        .container {
+            display: flex;
+        }
+
+        .containedDiv {
+            display: inline-block;
+            margin-right: 100px;
+        }
+    </style>
+
+</head>
+
+<body>
+    <h1>Model with inputs</h1>
+    <ul>
+        <li> Set a key for an action: put the mouse over the action and press the key you want to assign
+            it.<br>
+        </li>
+        <li>Remove a key for an action: click on the key value</li>
+    </ul>
+    <b>Control key should not be used for actions since most web browser have actions associated (Control +w
+        closes
+        window) and it is not allowed to override them.</b>
+    <br><br>
     <label for="modelName">Model name:</label>
     <input type="text" id="modelName" value="???">
     <button onclick="saveModel()"> SAVE</button><br>
@@ -60,17 +113,203 @@
     <input type="file" id="fileInput" onchange="loadFile(this)"> &nbsp; It will overwrite the current model.
 
     <h2>Attacking player actions</h2>
-    <h3> Catch modifiers</h3>
-        <div id="catchModifiersDiv"></div>
-        <table>
-            <tr><th>Action</th><th>key</th><th>special key</th></tr>
-            <tr><td>layout</td><td>l</td><td></td></tr>
-            <tr class="error"><td>high separation</td><td>h</td><td></td></tr>
-            <tr class="error"><td>hard catch</td><td>h</td><td></td></tr>
-        </table>
-    <h3>Turnover reasons</h3>
-        <div id="turnoverReasonsDiv"></div>
-    </ul>
+    <div class="container">
+        <div id="catchModifiersDiv" class="containedDiv">
+            <h3> Catch modifiers</h3>
+            <table id="catchModifiersTable">
+                <tr>
+                    <th>Action</th>
+                    <th>key</th>
+                </tr>
+            </table>
+        </div>
+        <div id="turnoverReasonsDiv" class="containedDiv">
+            <h3>Turnover reasons</h3>
+        </div>
+    </div>
 
-    </body>
+    <div id="contentDiv">aaa</div>
+
+</body>
+
+<script>
+
+    var isSaved = true
+    var catchModifiers = ["layout", "high separation", "duel", "hard catch"]
+
+    var i = 0
+    var tBody = document.getElementById("catchModifiersTable").tBodies[0];
+    catchModifiers.forEach(element => {
+        var newRow = document.createElement('tr');
+        newRow.className = "ok";
+        var actionCell = document.createElement('td');
+        var keyCell = document.createElement('td');
+        actionCell.innerHTML = element + '<span class="tooltip">press a key to assign it</span>'
+        keyCell.id = "key" + i
+        actionCell.id = "action" + i
+        newRow.appendChild(actionCell);
+        newRow.appendChild(keyCell);
+        tBody.appendChild(newRow);
+        i++
+    });
+
+    function saveModel() {
+        isSaved = true
+    }
+
+    function loadFile(input) {
+        var file = input.files[0];
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            generateContent(e.target.result)
+        };
+        reader.readAsText(file);
+    }
+
+    var keysToIgnore = ["AltGraph", "Meta", "Control", "Shift", "Alt", "CapsLock"];
+    function handleKeyDown(event) {
+        event.preventDefault();
+        console.log('Key pressed:', event.key);
+        if (keysToIgnore.includes(event.key)) {
+            return;
+        }
+        let keyId = activeAction.id.replace("action", "key")
+        var keyCell = document.getElementById(keyId);
+        keyCell.innerHTML = event.key;
+
+        checkKeyConsistency();
+    }
+
+    function checkKeyConsistency() {
+
+        document.querySelectorAll('[id^="key"]').forEach(element => {
+            element.parentNode.className = "ok";
+        });
+        // Get all cells with IDs starting with "key" and non-empty innerHTML
+        const cells = document.querySelectorAll('[id^="key"]:not(:empty)');
+
+        // Create an object to store cell values
+        const cellValues = {};
+
+        // Iterate through the cells
+        cells.forEach(cell => {
+            const cellValue = cell.innerHTML.trim();
+            if (cellValue in cellValues) {
+                cellValues[cellValue].push(cell);
+            } else {
+                cellValues[cellValue] = [cell];
+            }
+        });
+
+        // Filter cells with the same value as another cell
+        const cellsWithSameValue = Object.values(cellValues).filter(cellsArr => cellsArr.length > 1).flat();
+
+        // Iterate through the filtered cells
+        cellsWithSameValue.forEach(cell => {
+            console.log(cell.innerHTML);
+            cell.parentNode.className = "error";
+        });
+    }
+
+
+    // Select all elements whose ID starts with "key"
+    const elements = document.querySelectorAll('[id^="action"]');
+
+    var activeAction = null;
+
+    // Loop through the selected elements
+    elements.forEach(element => {
+        element.addEventListener('mouseenter', function () {
+            activeAction = element;
+            console.log(activeAction.id);
+            document.addEventListener('keydown', handleKeyDown);
+        });
+
+        element.addEventListener('mouseleave', function () {
+            activeAction = null;
+            console.log(activeAction);
+            document.removeEventListener('keydown', handleKeyDown);
+        });
+    });
+
+    document.querySelectorAll('[id^="key"]').forEach(element => {
+        element.addEventListener('click', function () {
+            element.innerHTML = "";
+            checkKeyConsistency();
+        });
+    });
+
+    addEventListener(
+        'beforeunload',
+        function (e) {
+            if (isSaved) {
+                return true;
+            }
+            e.stopPropagation();
+            e.preventDefault();
+            return false;
+        },
+        true
+    );
+
+    function generateContent(content) {
+        console.log(content);
+
+        contentDiv.innerHTML = ""
+
+        const json = JSON.parse(content);
+
+        modelName.value = json["name"]
+
+        for (const key in json) {
+            if (key != "name") {
+                generateSection(json[key], key)
+            }
+
+        }
+    }
+
+    function generateSection(json, key) {
+        console.log('section '+key);
+
+        var sectionDiv = document.createElement('div');
+        var title = document.createElement('h2');
+        title.innerHTML = key;
+        sectionDiv.appendChild(title);
+        var subdiv = document.createElement('div');
+        subdiv.className = "container"
+        sectionDiv.appendChild(subdiv);
+
+        for (const key in json) {
+            generateCategory(json[key], key, subdiv);
+        }
+
+        contentDiv.appendChild(sectionDiv);
+    }
+
+    function generateCategory(json, key, div) {
+        console.log('category '+key);
+        var section = document.createElement('div')
+        var title = document.createElement('h3');
+        title.innerHTML = key;
+        section.appendChild(title);
+        section.className = "containedDiv"
+        div.appendChild(section);
+        
+    }
+
+    function getAllNodes(obj) {
+        for (const key in obj) {
+            console.log(`Key: ${key}, Value: ${obj[key]}`);
+            if (typeof obj[key] === 'object') {
+                getAllNodes(obj[key]); // Recursive call for nested objects
+            }
+        }
+    }
+
+
+    // Call the function with the JSON object
+
+</script>
+
 </html>

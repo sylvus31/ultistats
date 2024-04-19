@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swiping Example with Cycling (Left and Right)</title>
+<style>
+  .container {
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
+  }
+
+  .swipeable {
+    width: 100%;
+    height: 100%;
+    display: inline-block;
+    box-sizing: border-box;
+    transition: transform 0.3s ease-in-out;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  #A { background-color: lightblue; }
+  #B { background-color: lightgreen; }
+  #C { background-color: lightcoral; }
+  #D { background-color: lightsalmon; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div id="A" class="swipeable">A</div>
+  <div id="B" class="swipeable" style="transform: translateX(100%);">B</div>
+  <div id="C" class="swipeable" style="transform: translateX(200%);">C</div>
+  <div id="D" class="swipeable" style="transform: translateX(300%);">D</div>
+</div>
+
+<script>
+  var current = 0;
+  var swipeables = document.querySelectorAll('.swipeable');
+  var container = document.querySelector('.container');
+  var containerWidth = container.clientWidth;
+  var xDown = null;
+
+  container.addEventListener('mousedown', handleTouchStart, false);
+  container.addEventListener('touchstart', handleTouchStart, false);
+
+  container.addEventListener('mouseup', handleTouchMove, false);
+  container.addEventListener('touchend', handleTouchMove, false);
+
+  function handleTouchStart(event) {
+    xDown = event.clientX || event.touches[0].clientX;
+  }
+
+  function handleTouchMove(event) {
+    if (!xDown) {
+      return;
+    }
+
+    var xUp = event.clientX || event.touches[0].clientX;
+    var xDiff = xDown - xUp;
+    console.log(xDiff)
+
+    if (xDiff > 50) {
+      // Swiped left
+      current = (current + 1) % swipeables.length;
+    } else if (xDiff < -50) {
+      // Swiped right
+      current = (current - 1 + swipeables.length) % swipeables.length;
+    }
+
+    updateSwipeables();
+    xDown = null;
+  }
+
+  function updateSwipeables() {
+    var newTransform = -current * containerWidth;
+    swipeables.forEach((swipeable, index) => {
+      swipeable.style.transform = `translateX(${newTransform + index * containerWidth}px)`;
+    });
+  }
+</script>
+
+</body>
+</html>
