@@ -101,6 +101,8 @@
             it.<br>
         </li>
         <li>Remove a key for an action: click on the key value</li>
+        <li>Keys are optionnal, record interface will provide buttons for all actions</li>
+        <li>Some actions such as "score point" will be added automatically</li>
     </ul>
     <b>Control key should not be used for actions since most web browser have actions associated (Control +w
         closes
@@ -112,46 +114,53 @@
     <label for="fileInput">Load model:</label>
     <input type="file" id="fileInput" onchange="loadFile(this)"> &nbsp; It will overwrite the current model.
 
-    <h2>Attacking player actions</h2>
-    <div class="container">
-        <div id="catchModifiersDiv" class="containedDiv">
-            <h3> Catch modifiers</h3>
-            <table id="catchModifiersTable">
-                <tr>
-                    <th>Action</th>
-                    <th>key</th>
-                </tr>
-            </table>
-        </div>
-        <div id="turnoverReasonsDiv" class="containedDiv">
-            <h3>Turnover reasons</h3>
-        </div>
-    </div>
-
-    <div id="contentDiv">aaa</div>
+    <div id="contentDiv"></div>
 
 </body>
 
 <script>
 
     var isSaved = true
-    var catchModifiers = ["layout", "high separation", "duel", "hard catch"]
 
     var i = 0
-    var tBody = document.getElementById("catchModifiersTable").tBodies[0];
-    catchModifiers.forEach(element => {
-        var newRow = document.createElement('tr');
-        newRow.className = "ok";
-        var actionCell = document.createElement('td');
-        var keyCell = document.createElement('td');
-        actionCell.innerHTML = element + '<span class="tooltip">press a key to assign it</span>'
-        keyCell.id = "key" + i
-        actionCell.id = "action" + i
-        newRow.appendChild(actionCell);
-        newRow.appendChild(keyCell);
-        tBody.appendChild(newRow);
-        i++
-    });
+
+    function deleteAction(button) {
+        var row = button.parentNode.parentNode; // Get the row containing the button
+        row.parentNode.removeChild(row)
+        checkKeyConsistency()
+    }
+
+    function createActionsTable(actions, tableId) {
+        console.log("actions: " + actions)
+        var tbl = document.createElement("table");
+        tbl.id = tableId
+        var tblBody = document.createElement("tbody");
+        var tblHd = tbl.createTHead()
+        var hdRow = tblHd.insertRow(0)
+        hdRow.insertCell(0).innerHTML = "del"
+        hdRow.insertCell(1).innerHTML = "Action"
+        hdRow.insertCell(2).innerHTML = "Key"
+        tbl.appendChild(tblBody)
+        actions.forEach(element => {
+            var newRow = document.createElement('tr');
+            newRow.id = "row" + i
+            newRow.className = "ok";
+            var deleteCell = document.createElement('td')
+            var actionCell = document.createElement('td');
+            var keyCell = document.createElement('td');
+            deleteCell.innerHTML = '<input type="button" value="X" onclick="deleteAction(this)">'
+
+            actionCell.innerHTML = element + '<span class="tooltip">press a key to assign it</span>'
+            keyCell.id = "key" + i
+            actionCell.id = "action" + i
+            newRow.appendChild(deleteCell)
+            newRow.appendChild(actionCell)
+            newRow.appendChild(keyCell)
+            tblBody.appendChild(newRow)
+            i++
+        });
+        return tbl
+    }
 
     function saveModel() {
         isSaved = true
@@ -213,31 +222,34 @@
 
 
     // Select all elements whose ID starts with "key"
-    const elements = document.querySelectorAll('[id^="action"]');
+
 
     var activeAction = null;
 
     // Loop through the selected elements
-    elements.forEach(element => {
-        element.addEventListener('mouseenter', function () {
-            activeAction = element;
-            console.log(activeAction.id);
-            document.addEventListener('keydown', handleKeyDown);
+    function setKeySettingEventsHandling() {
+        const elements = document.querySelectorAll('[id^="action"]');
+        elements.forEach(element => {
+            element.addEventListener('mouseenter', function () {
+                activeAction = element;
+                console.log(activeAction.id);
+                document.addEventListener('keydown', handleKeyDown);
+            });
+
+            element.addEventListener('mouseleave', function () {
+                activeAction = null;
+                console.log(activeAction);
+                document.removeEventListener('keydown', handleKeyDown);
+            });
         });
 
-        element.addEventListener('mouseleave', function () {
-            activeAction = null;
-            console.log(activeAction);
-            document.removeEventListener('keydown', handleKeyDown);
+        document.querySelectorAll('[id^="key"]').forEach(element => {
+            element.addEventListener('click', function () {
+                element.innerHTML = "";
+                checkKeyConsistency();
+            });
         });
-    });
-
-    document.querySelectorAll('[id^="key"]').forEach(element => {
-        element.addEventListener('click', function () {
-            element.innerHTML = "";
-            checkKeyConsistency();
-        });
-    });
+    }
 
     addEventListener(
         'beforeunload',
@@ -267,10 +279,12 @@
             }
 
         }
+
+        setKeySettingEventsHandling()
     }
 
     function generateSection(json, key) {
-        console.log('section '+key);
+        console.log('section ' + key);
 
         var sectionDiv = document.createElement('div');
         var title = document.createElement('h2');
@@ -280,22 +294,75 @@
         subdiv.className = "container"
         sectionDiv.appendChild(subdiv);
 
-        for (const key in json) {
+        for (key in json) {
             generateCategory(json[key], key, subdiv);
         }
 
         contentDiv.appendChild(sectionDiv);
     }
 
+    function createAddForm(tableKey) {
+        const newActionDiv = document.createElement("div");
+
+        const inputLabel = document.createElement("label");
+        inputLabel.textContent = "new action:";
+        const inputField = document.createElement("input");
+        inputField.type = "text";
+        inputField.id = "newAction" + tableKey;
+        inputField.name = "inputField";
+
+        const validateButton = document.createElement("button");
+        validateButton.type = "submit";
+        validateButton.innerHTML = '<input type="button" value="Add" onclick="addAction(' + tableKey + ')">'
+
+        newActionDiv.appendChild(inputLabel);
+        newActionDiv.appendChild(inputField);
+        newActionDiv.appendChild(validateButton);
+
+        return newActionDiv
+    }
+
+    function addAction(tableKey) {
+        var input = document.getElementById("newAction" + tableKey.id)
+        if (input.value === "") {
+            alert("give a name to the action")
+        } else {
+            var tblBody = tableKey.getElementsByTagName('tbody')[0]
+            var newRow = document.createElement('tr');
+            newRow.id = "row" + i
+            newRow.className = "ok";
+            var deleteCell = document.createElement('td')
+            var actionCell = document.createElement('td');
+            var keyCell = document.createElement('td');
+            deleteCell.innerHTML = '<input type="button" value="X" onclick="deleteAction(this)">'
+
+            actionCell.innerHTML = input.value + '<span class="tooltip">press a key to assign it</span>'
+            keyCell.id = "key" + i
+            actionCell.id = "action" + i
+            newRow.appendChild(deleteCell)
+            newRow.appendChild(actionCell)
+            newRow.appendChild(keyCell)
+            tblBody.appendChild(newRow)
+            setKeySettingEventsHandling()
+            i++
+        }
+    }
+
+
     function generateCategory(json, key, div) {
-        console.log('category '+key);
+        console.log('category ' + key);
+        console.log(json)
         var section = document.createElement('div')
         var title = document.createElement('h3');
         title.innerHTML = key;
         section.appendChild(title);
         section.className = "containedDiv"
         div.appendChild(section);
-        
+        tbl = createActionsTable(json, key)
+        section.appendChild(tbl)
+        var form = createAddForm(key)
+        section.appendChild(form)
+
     }
 
     function getAllNodes(obj) {
@@ -308,7 +375,11 @@
     }
 
 
-    // Call the function with the JSON object
+    generateContent('{"name":"example","attackingPlayerActions":{"catchModifiers":["layout","high separation","duel","hard catch"],"turnoverReasons":["bad throw","timeout"]},"attackingPasses":{"possiblePasses":["swing","hammer","dump","skoober","knife","side","back"],"passModifiers":["break","long","hail Mary","bad hand"]},"pullingEvents":{"startingLocations":["brick","right line","left line","end zone"]}}')
+
+
+    // TODO: load default json model
+    // https://sylvus31.github.io/ultistats/model.json
 
 </script>
 
