@@ -148,6 +148,7 @@
             var deleteCell = document.createElement('td')
             var actionCell = document.createElement('td');
             var keyCell = document.createElement('td');
+            actionCell.classList.add("action")
             deleteCell.innerHTML = '<input type="button" value="X" onclick="deleteAction(this)">'
 
             actionCell.innerHTML = element + '<span class="tooltip">press a key to assign it</span>'
@@ -164,6 +165,7 @@
 
     function saveModel() {
         isSaved = true
+        generateModelObject()
     }
 
     function loadFile(input) {
@@ -251,6 +253,17 @@
         });
     }
 
+    function generateModelObject() {
+        let model
+        sections = document.getElementsByClassName("section")
+        Array.from(sections).forEach((sec) => {
+            console.log(sec.innerHTML)
+
+        })
+
+
+    }
+
     addEventListener(
         'beforeunload',
         function (e) {
@@ -287,15 +300,24 @@
         console.log('section ' + key);
 
         var sectionDiv = document.createElement('div');
+        sectionDiv.classList.add("section")
         var title = document.createElement('h2');
+        title.classList.add("section")
+        title.classList.add("title")
         title.innerHTML = key;
         sectionDiv.appendChild(title);
+
+        var description = document.createElement('div')
+        description.innerHTML = json["description"]
+        sectionDiv.appendChild(description)
+
         var subdiv = document.createElement('div');
         subdiv.className = "container"
         sectionDiv.appendChild(subdiv);
 
         for (key in json) {
-            generateCategory(json[key], key, subdiv);
+            if (json[key].constructor === Array)
+                generateCategory(json[key], key, subdiv);
         }
 
         contentDiv.appendChild(sectionDiv);
@@ -355,6 +377,7 @@
         var section = document.createElement('div')
         var title = document.createElement('h3');
         title.innerHTML = key;
+        title.classList.add("category")
         section.appendChild(title);
         section.className = "containedDiv"
         div.appendChild(section);
@@ -374,8 +397,89 @@
         }
     }
 
-
-    generateContent('{"name":"example","attackingPlayerActions":{"catchModifiers":["layout","high separation","duel","hard catch"],"turnoverReasons":["bad throw","timeout"]},"attackingPasses":{"possiblePasses":["swing","hammer","dump","skoober","knife","side","back"],"passModifiers":["break","long","hail Mary","bad hand"]},"pullingEvents":{"startingLocations":["brick","right line","left line","end zone"]}}')
+    defaultContent = {
+        "name": "example",
+        "generic": {
+            "description": "generic items applicable both in offense and defense",
+            "interruptions": [
+                "point",
+                "turnover",
+                "foul",
+                "time out",
+                "half time"
+            ],
+            "defense": [
+                "individual",
+                "zone"
+            ]
+        },
+        "attackingPlayerActions": {
+            "description": "Records about the disc owner, about how the disc was catched or lost. A catch with no special information is created any time a new player is selected",
+            "catchModifiers": [
+                "layout",
+                "high separation",
+                "duel",
+                "hard catch"
+            ],
+            "turnoverReasons": [
+                "bad throw",
+                "drop",
+                "interception",
+                "blocked",
+                "stall out"
+            ]
+        },
+        "attackingPasses": {
+            "description": "Records about a pass made. Result of the passis defined by Attacking players actions (is it catched or not) ",
+            "possiblePasses": [
+                "swing",
+                "hammer",
+                "dump",
+                "skoober",
+                "knife",
+                "side",
+                "back"
+            ],
+            "passModifiers": [
+                "break",
+                "long",
+                "hail Mary",
+                "bad hand"
+            ]
+        },
+        "pullingEvents": {
+            "description": "select pull to record throw time, and a starting location to indicate from where the attacking team starts",
+            "start": [
+                "pull"
+            ],
+            "starting location": [
+                "brick",
+                "right line",
+                "left line",
+                "end zone"
+            ]
+        },
+        "defensiveAction": {
+            "description": "Used to record what the defensive team is doing. It focus on player defending on the receiver",
+            "turnoverReasons": [
+                "Block",
+                "Interception"
+            ],
+            "Positive": [
+                "contest"
+            ],
+            "Negative": [
+                "HighSeparation",
+                "LowAwareness"
+            ],
+            "modifiers": [
+                "poach",
+                "help"
+            ]
+        }
+    }
+    // generateContent('{"name":"example","attackingPlayerActions":{"catchModifiers":["layout","high separation","duel","hard catch"],"turnoverReasons":["bad throw","timeout"]},"attackingPasses":{"possiblePasses":["swing","hammer","dump","skoober","knife","side","back"],"passModifiers":["break","long","hail Mary","bad hand"]},"pullingEvents":{"startingLocations":["brick","right line","left line","end zone"]}}')
+    generateContent(JSON.stringify(defaultContent))
 
 
     // TODO: load default json model
